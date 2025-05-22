@@ -42,6 +42,10 @@
       color: white;
       border: none;
     }
+    .btn-secondary {
+      background-color: #888;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -68,6 +72,7 @@
     <input type="number" id="quantity" name="quantity" min="0" required>
 
     <button type="submit">Submit</button>
+    <button type="button" class="btn-secondary" onclick="clearSelections()">Change Department / Date</button>
   </form>
 
   <script>
@@ -114,6 +119,13 @@
       document.getElementById("barcode").value = "";
       document.getElementById("quantity").value = "";
     });
+
+    function clearSelections() {
+      localStorage.removeItem('lastDepartment');
+      localStorage.removeItem('lastStockDate');
+      document.getElementById('department').value = "";
+      document.getElementById('stockDate').value = "";
+    }
   </script>
 </body>
 </html>
