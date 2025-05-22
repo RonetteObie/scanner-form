@@ -42,9 +42,6 @@
       color: white;
       border: none;
     }
-    #scanButton {
-      background-color: #2196F3;
-    }
   </style>
 </head>
 <body>
@@ -59,7 +56,6 @@
       <option value="DELICATESSEN">DELICATESSEN</option>
       <option value="FRUIT & VEG">FRUIT & VEG</option>
       <option value="GROCERIES TAX">GROCERIES TAX</option>
-      <!-- Add other departments here -->
     </select>
 
     <label for="stockDate">Date of Stocktake:</label>
@@ -67,7 +63,6 @@
 
     <label for="barcode">Barcode:</label>
     <input type="text" id="barcode" name="barcode" required>
-    <button type="button" id="scanButton">Scan Barcode</button>
 
     <label for="quantity">Quantity:</label>
     <input type="number" id="quantity" name="quantity" min="0" required>
@@ -100,17 +95,8 @@
         body: JSON.stringify(formData)
       });
 
-      alert("Submitted!");
+      alert("✅ Stocktake entry submitted successfully.");
       document.getElementById("stockForm").reset();
-    });
-
-    document.getElementById("scanButton").addEventListener("click", function () {
-      document.getElementById("barcode").focus();
-      if (typeof scanToWeb !== "undefined" && typeof scanToWeb.scanBarcode === "function") {
-        scanToWeb.scanBarcode();
-      } else {
-        alert("Scanner not available. Please use Scan to Web app.");
-      }
     });
   </script>
 </body>
