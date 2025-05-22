@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stocktake Scanner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+    form {
+      width: 100%;
+      max-width: 400px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 1rem;
+    }
+    button {
+      margin-top: 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+    }
+    #scanButton {
+      background-color: #2196F3;
+    }
+  </style>
+</head>
+<body>
+  <form id="stockForm">
+    <h2>SPRINGBOK SUPERSPAR Stocktake</h2>
+
+    <label for="department">Department:</label>
+    <select id="department" name="department" required>
+      <option value="">Select Department</option>
+      <option value="BAKERY CONFEC">BAKERY CONFEC</option>
+      <option value="BUTCHERY">BUTCHERY</option>
+      <option value="DELICATESSEN">DELICATESSEN</option>
+      <option value="FRUIT & VEG">FRUIT & VEG</option>
+      <option value="GROCERIES TAX">GROCERIES TAX</option>
+      <!-- Add other departments here -->
+    </select>
+
+    <label for="stockDate">Date of Stocktake:</label>
+    <input type="date" id="stockDate" name="stockDate" required>
+
+    <label for="barcode">Barcode:</label>
+    <input type="text" id="barcode" name="barcode" required>
+    <button type="button" id="scanButton">Scan Barcode</button>
+
+    <label for="quantity">Quantity:</label>
+    <input type="number" id="quantity" name="quantity" min="0" required>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <script>
+    document.getElementById("stockForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const formData = {
+        department: document.getElementById("department").value,
+        stockDate: document.getElementById("stockDate").value,
+        barcode: document.getElementById("barcode").value,
+        quantity: document.getElementById("quantity").value
+      };
+
+      if (!formData.department || !formData.stockDate || !formData.barcode || formData.quantity === "") {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      fetch("https://script.google.com/macros/s/AKfycby0vYJf7JoIdEjHFNABi6fhh2bO_IVPoOiQ_MEXnn30p3u5RwpGz1OE8_CbrsSZRyX6xQ/exec", {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(formData)
+      });
+
+      alert("Submitted!");
+      document.getElementById("stockForm").reset();
+    });
+
+    document.getElementById("scanButton").addEventListener("click", function () {
+      document.getElementById("barcode").focus();
+      if (typeof scanToWeb !== "undefined" && typeof scanToWeb.scanBarcode === "function") {
+        scanToWeb.scanBarcode();
+      } else {
+        alert("Scanner not available. Please use Scan to Web app.");
+      }
+    });
+  </script>
+</body>
+</html>
