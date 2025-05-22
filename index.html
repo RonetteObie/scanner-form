@@ -71,6 +71,15 @@
   </form>
 
   <script>
+    // Load last used department and date from localStorage
+    window.onload = function() {
+      const lastDept = localStorage.getItem('lastDepartment');
+      const lastDate = localStorage.getItem('lastStockDate');
+
+      if (lastDept) document.getElementById('department').value = lastDept;
+      if (lastDate) document.getElementById('stockDate').value = lastDate;
+    };
+
     document.getElementById("stockForm").addEventListener("submit", function(e) {
       e.preventDefault();
 
@@ -86,6 +95,10 @@
         return;
       }
 
+      // Save department and date for next session
+      localStorage.setItem('lastDepartment', formData.department);
+      localStorage.setItem('lastStockDate', formData.stockDate);
+
       fetch("https://script.google.com/macros/s/AKfycby0vYJf7JoIdEjHFNABi6fhh2bO_IVPoOiQ_MEXnn30p3u5RwpGz1OE8_CbrsSZRyX6xQ/exec", {
         method: "POST",
         mode: "no-cors",
@@ -96,7 +109,10 @@
       });
 
       alert("✅ Stocktake entry submitted successfully.");
-      document.getElementById("stockForm").reset();
+
+      // Only reset barcode and quantity
+      document.getElementById("barcode").value = "";
+      document.getElementById("quantity").value = "";
     });
   </script>
 </body>
