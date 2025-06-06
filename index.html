@@ -29,7 +29,7 @@
       display: block;
       margin-top: 15px;
     }
-    input, select, button {
+    input, select, button, textarea {
       width: 100%;
       padding: 10px;
       margin-top: 5px;
@@ -56,16 +56,27 @@
     <select id="department" name="department" required>
       <option value="">Select Department</option>
       <option value="BAKERY CONFEC">BAKERY CONFEC</option>
+      <option value="BAKERY CONFEC_INGREDIENTS">BAKERY CONFEC_INGREDIENTS</option>
       <option value="BUTCHERY">BUTCHERY</option>
+      <option value="BUTCHERY_INGREDIENTS">BUTCHERY_INGREDIENTS</option>
       <option value="DELICATESSEN">DELICATESSEN</option>
+      <option value="DELICATESSEN_INGREDIENTS">DELICATESSEN_INGREDIENTS</option>
       <option value="FRUIT & VEG">FRUIT & VEG</option>
+      <option value="FRUIT & VEG_INGREDIENTS">FRUIT & VEG_INGREDIENTS</option>
       <option value="FAST FOODS">FAST FOODS</option>
+      <option value="FAST FOODS_INGREDIENTS">FAST FOODS_INGREDIENTS</option>
       <option value="BEAN TREE">BEAN TREE</option>
+      <option value="BEAN TREE_INGREDIENTS">BEAN TREE_INGREDIENTS</option>
       <option value="BULK CHEESE">BULK CHEESE</option>
+      <option value="BULK CHEESE_INGREDIENTS">BULK CHEESE_INGREDIENTS</option>
       <option value="SUSHI">SUSHI</option>
+      <option value="SUSHI_INGREDIENTS">SUSHI_INGREDIENTS</option>
       <option value="WHY NOT">WHY NOT</option>
+      <option value="WHY NOT_INGREDIENTS">WHY NOT_INGREDIENTS</option>
       <option value="CHIKKA CHICKEN">CHIKKA CHICKEN</option>
+      <option value="CHIKKA CHICKEN_INGREDIENTS">CHIKKA CHICKEN_INGREDIENTS</option>
       <option value="BAKERY BREAD">BAKERY BREAD</option>
+      <option value="BAKERY BREAD_INGREDIENTS">BAKERY BREAD_INGREDIENTS</option>
     </select>
 
     <label for="stockDate">Date of Stocktake:</label>
@@ -76,6 +87,9 @@
 
     <label for="quantity">Quantity:</label>
     <input type="number" id="quantity" name="quantity" min="0" required>
+
+    <label for="comment">Comment (optional):</label>
+    <textarea id="comment" name="comment" rows="3" placeholder="E.g. Bulk item, Buy-in, etc."></textarea>
 
     <button type="submit">Submit</button>
     <button type="button" class="btn-secondary" onclick="clearSelections()">Change Department / Date</button>
@@ -98,7 +112,8 @@
         department: document.getElementById("department").value,
         stockDate: document.getElementById("stockDate").value,
         barcode: document.getElementById("barcode").value,
-        quantity: document.getElementById("quantity").value
+        quantity: document.getElementById("quantity").value,
+        comment: document.getElementById("comment").value
       };
 
       if (!formData.department || !formData.stockDate || !formData.barcode || formData.quantity === "") {
@@ -106,7 +121,6 @@
         return;
       }
 
-      // Save department and date for next session
       localStorage.setItem('lastDepartment', formData.department);
       localStorage.setItem('lastStockDate', formData.stockDate);
 
@@ -121,9 +135,9 @@
 
       alert("✅✅✅✅✅ submitted successfully.");
 
-      // Only reset barcode and quantity
       document.getElementById("barcode").value = "";
       document.getElementById("quantity").value = "";
+      document.getElementById("comment").value = "";
     });
 
     function clearSelections() {
