@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Stocktake Scanner</title>
+  <title>BURFAM Scanner App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
+      margin: 0; padding: 0; height: 100%;
     }
     body {
       font-family: sans-serif;
@@ -49,103 +47,130 @@
   </style>
 </head>
 <body>
-  <form id="stockForm">
-    <h2>SPRINGBOK SUPERSPAR Stocktake</h2>
+  <form id="scannerForm">
+    <h2>BURFAM Scanner App</h2>
 
-    <label for="department">Department:</label>
-    <select id="department" name="department" required>
-      <option value="">Select Department</option>
-      <option value="BAKERY CONFEC">BAKERY CONFEC</option>
-      <option value="BAKERY CONFEC_INGREDIENTS">BAKERY CONFEC_INGREDIENTS</option>
-      <option value="BUTCHERY">BUTCHERY</option>
-      <option value="BUTCHERY_INGREDIENTS">BUTCHERY_INGREDIENTS</option>
-      <option value="DELICATESSEN">DELICATESSEN</option>
-      <option value="DELICATESSEN_INGREDIENTS">DELICATESSEN_INGREDIENTS</option>
-      <option value="FRUIT & VEG">FRUIT & VEG</option>
-      <option value="FRUIT & VEG_INGREDIENTS">FRUIT & VEG_INGREDIENTS</option>
-      <option value="FAST FOODS">FAST FOODS</option>
-      <option value="FAST FOODS_INGREDIENTS">FAST FOODS_INGREDIENTS</option>
-      <option value="BEAN TREE">BEAN TREE</option>
-      <option value="BEAN TREE_INGREDIENTS">BEAN TREE_INGREDIENTS</option>
-      <option value="BULK CHEESE">BULK CHEESE</option>
-      <option value="BULK CHEESE_INGREDIENTS">BULK CHEESE_INGREDIENTS</option>
-      <option value="SUSHI">SUSHI</option>
-      <option value="SUSHI_INGREDIENTS">SUSHI_INGREDIENTS</option>
-      <option value="WHY NOT">WHY NOT</option>
-      <option value="WHY NOT_INGREDIENTS">WHY NOT_INGREDIENTS</option>
-      <option value="CHIKKA CHICKEN">CHIKKA CHICKEN</option>
-      <option value="CHIKKA CHICKEN_INGREDIENTS">CHIKKA CHICKEN_INGREDIENTS</option>
-      <option value="BAKERY BREAD">BAKERY BREAD</option>
-      <option value="BAKERY BREAD_INGREDIENTS">BAKERY BREAD_INGREDIENTS</option>
+    <label for="mode">Scan Mode:</label>
+    <select id="mode" name="mode" required onchange="adjustFormFields()">
+      <option value="">Select Mode</option>
+      <option value="Stocktake">Stocktake</option>
+      <option value="OOS">Out of Stock</option>
+      <option value="IDT">Inter Department Transfer (IDT)</option>
     </select>
 
-    <label for="stockDate">Date of Stocktake:</label>
-    <input type="date" id="stockDate" name="stockDate" required>
+    <div id="commonFields" style="display:none">
+      <label for="barcode">Barcode:</label>
+      <input type="text" id="barcode" name="barcode" required>
+    </div>
 
-    <label for="barcode">Barcode:</label>
-    <input type="text" id="barcode" name="barcode" required>
+    <div id="stocktakeFields" style="display:none">
+      <label for="department">Department:</label>
+      <select id="department"></select>
 
-    <label for="quantity">Quantity:</label>
-    <input type="number" id="quantity" name="quantity" min="0" required>
+      <label for="stockDate">Date of Stocktake:</label>
+      <input type="date" id="stockDate">
 
-    <label for="comment">Comment (optional):</label>
-    <textarea id="comment" name="comment" rows="3" placeholder="E.g. Bulk item, Buy-in, etc."></textarea>
+      <label for="quantity">Quantity:</label>
+      <input type="number" id="quantity" min="0">
+
+      <label for="comment">Comment (optional):</label>
+      <textarea id="comment" rows="3" placeholder="E.g. Bulk item, Buy-in, etc."></textarea>
+    </div>
+
+    <div id="idtFields" style="display:none">
+      <label for="fromDept">From Department:</label>
+      <select id="fromDept"></select>
+
+      <label for="toDept">To Department:</label>
+      <select id="toDept"></select>
+
+      <label for="idtQuantity">Quantity:</label>
+      <input type="number" id="idtQuantity" min="0">
+
+      <label for="idtSection">Section (optional):</label>
+      <input type="text" id="idtSection">
+    </div>
 
     <button type="submit">Submit</button>
-    <button type="button" class="btn-secondary" onclick="clearSelections()">Change Department / Date</button>
+    <button type="button" class="btn-secondary" onclick="clearSelections()">Reset</button>
   </form>
 
   <script>
-    // Load last used department and date from localStorage
-    window.onload = function() {
-      const lastDept = localStorage.getItem('lastDepartment');
-      const lastDate = localStorage.getItem('lastStockDate');
+    const departments = [
+      "BAKERY CONFEC", "BUTCHERY", "DELICATESSEN", "FRUIT & VEG", "FAST FOODS",
+      "BEAN TREE", "BULK CHEESE", "SUSHI", "WHY NOT", "CHIKKA CHICKEN", "BAKERY BREAD",
+      "BAKERY CONFEC_INGREDIENTS", "BUTCHERY_INGREDIENTS", "DELICATESSEN_INGREDIENTS",
+      "FRUIT & VEG_INGREDIENTS", "FAST FOODS_INGREDIENTS", "BEAN TREE_INGREDIENTS",
+      "BULK CHEESE_INGREDIENTS", "SUSHI_INGREDIENTS", "WHY NOT_INGREDIENTS",
+      "CHIKKA CHICKEN_INGREDIENTS", "BAKERY BREAD_INGREDIENTS"
+    ];
 
-      if (lastDept) document.getElementById('department').value = lastDept;
-      if (lastDate) document.getElementById('stockDate').value = lastDate;
+    const fillDropdown = (id) => {
+      const select = document.getElementById(id);
+      select.innerHTML = '<option value="">Select</option>';
+      departments.forEach(dept => {
+        const opt = document.createElement('option');
+        opt.value = dept;
+        opt.text = dept;
+        select.add(opt);
+      });
     };
 
-    document.getElementById("stockForm").addEventListener("submit", function(e) {
-      e.preventDefault();
+    function adjustFormFields() {
+      const mode = document.getElementById("mode").value;
+      document.getElementById("commonFields").style.display = mode ? 'block' : 'none';
+      document.getElementById("stocktakeFields").style.display = (mode === 'Stocktake') ? 'block' : 'none';
+      document.getElementById("idtFields").style.display = (mode === 'IDT') ? 'block' : 'none';
+    }
 
-      const formData = {
-        department: document.getElementById("department").value,
-        stockDate: document.getElementById("stockDate").value,
-        barcode: document.getElementById("barcode").value,
-        quantity: document.getElementById("quantity").value,
-        comment: document.getElementById("comment").value
+    document.getElementById("scannerForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const mode = document.getElementById("mode").value;
+      const timestamp = new Date().toISOString();
+
+      const payload = {
+        mode,
+        timestamp,
+        barcode: document.getElementById("barcode").value
       };
 
-      if (!formData.department || !formData.stockDate || !formData.barcode || formData.quantity === "") {
-        alert("Please fill in all fields.");
-        return;
+      if (mode === "Stocktake") {
+        payload.department = document.getElementById("department").value;
+        payload.stockDate = document.getElementById("stockDate").value;
+        payload.quantity = document.getElementById("quantity").value;
+        payload.comment = document.getElementById("comment").value;
+      } else if (mode === "IDT") {
+        payload.fromDept = document.getElementById("fromDept").value;
+        payload.toDept = document.getElementById("toDept").value;
+        payload.quantity = document.getElementById("idtQuantity").value;
+        payload.section = document.getElementById("idtSection").value;
       }
-
-      localStorage.setItem('lastDepartment', formData.department);
-      localStorage.setItem('lastStockDate', formData.stockDate);
 
       fetch("https://script.google.com/macros/s/AKfycby0vYJf7JoIdEjHFNABi6fhh2bO_IVPoOiQ_MEXnn30p3u5RwpGz1OE8_CbrsSZRyX6xQ/exec", {
         method: "POST",
         mode: "no-cors",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(formData)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
 
-      alert("✅✅✅✅✅ submitted successfully.");
-
+      alert("✅ Submitted successfully");
       document.getElementById("barcode").value = "";
       document.getElementById("quantity").value = "";
       document.getElementById("comment").value = "";
+      document.getElementById("idtQuantity").value = "";
+      document.getElementById("idtSection").value = "";
     });
 
     function clearSelections() {
-      localStorage.removeItem('lastDepartment');
-      localStorage.removeItem('lastStockDate');
-      document.getElementById('department').value = "";
-      document.getElementById('stockDate').value = "";
+      document.getElementById("mode").value = "";
+      adjustFormFields();
     }
+
+    window.onload = function() {
+      fillDropdown("department");
+      fillDropdown("fromDept");
+      fillDropdown("toDept");
+    };
   </script>
 </body>
 </html>
