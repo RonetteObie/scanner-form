@@ -163,7 +163,6 @@
 
       alert("✅ Submitted successfully");
 
-      // Clear only inputs that vary between modes
       document.getElementById("barcode").value = "";
       document.getElementById("quantity").value = "";
       document.getElementById("comment").value = "";
@@ -182,6 +181,11 @@
       fillDropdown("fromDept");
       fillDropdown("toDept");
     };
+
+    // Hook for Scan to Web app
+    function scantowebsubmit() {
+      document.getElementById("scannerForm").dispatchEvent(new Event('submit', { bubbles: true }));
+    }
   </script>
 </body>
 </html>
