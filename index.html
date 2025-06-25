@@ -53,28 +53,17 @@
     <label for="mode">Scan Mode:</label>
     <select id="mode" name="mode" required onchange="adjustFormFields()">
       <option value="">Select Mode</option>
-      <option value="Stocktake">Stocktake</option>
+      <option value="StockTag">Stocktake</option>
       <option value="OOS">Out of Stock</option>
       <option value="IDT">Inter Department Transfer (IDT)</option>
     </select>
 
-    <div id="commonFields" style="display:none">
-      <label for="barcode">Barcode:</label>
-      <input type="text" id="barcode" name="barcode" required>
-    </div>
-
-    <div id="stocktakeFields" style="display:none">
+    <div id="stockFields" style="display:none">
       <label for="department">Department:</label>
       <select id="department"></select>
 
       <label for="stockDate">Date of Stocktake:</label>
       <input type="date" id="stockDate">
-
-      <label for="quantity">Quantity:</label>
-      <input type="number" id="quantity" min="0">
-
-      <label for="comment">Comment (optional):</label>
-      <textarea id="comment" rows="3" placeholder="E.g. Bulk item, Buy-in, etc."></textarea>
     </div>
 
     <div id="idtFields" style="display:none">
@@ -83,16 +72,21 @@
 
       <label for="toDept">To Department:</label>
       <select id="toDept"></select>
+    </div>
 
-      <label for="idtQuantity">Quantity:</label>
-      <input type="number" id="idtQuantity" min="0">
+    <div id="commonFields" style="display:none">
+      <label for="barcode">Barcode:</label>
+      <input type="text" id="barcode" required>
 
-      <label for="idtSection">Section (optional):</label>
-      <input type="text" id="idtSection">
+      <label for="quantity">Quantity:</label>
+      <input type="number" id="quantity" min="0">
+
+      <label for="comment">Comment (optional):</label>
+      <textarea id="comment" rows="3"></textarea>
     </div>
 
     <button type="submit">Submit</button>
-    <button type="button" class="btn-secondary" onclick="clearSelections()">Reset</button>
+    <button type="button" class="btn-secondary" onclick="resetForm()">Reset</button>
   </form>
 
   <script>
@@ -105,45 +99,41 @@
       "CHIKKA CHICKEN_INGREDIENTS", "BAKERY BREAD_INGREDIENTS"
     ];
 
-    const fillDropdown = (id) => {
-      const select = document.getElementById(id);
-      select.innerHTML = '<option value="">Select</option>';
-      departments.forEach(dept => {
+    function fillDropdown(id) {
+      const el = document.getElementById(id);
+      el.innerHTML = '<option value="">Select</option>';
+      departments.forEach(dep => {
         const opt = document.createElement('option');
-        opt.value = dept;
-        opt.text = dept;
-        select.add(opt);
+        opt.value = dep;
+        opt.text = dep;
+        el.add(opt);
       });
-    };
+    }
 
     function adjustFormFields() {
       const mode = document.getElementById("mode").value;
+      document.getElementById("stockFields").style.display = mode === "StockTag" ? 'block' : 'none';
+      document.getElementById("idtFields").style.display = mode === "IDT" ? 'block' : 'none';
       document.getElementById("commonFields").style.display = mode ? 'block' : 'none';
-      document.getElementById("stocktakeFields").style.display = (mode === 'Stocktake') ? 'block' : 'none';
-      document.getElementById("idtFields").style.display = (mode === 'IDT') ? 'block' : 'none';
     }
 
     document.getElementById("scannerForm").addEventListener("submit", function(e) {
       e.preventDefault();
       const mode = document.getElementById("mode").value;
-      const timestamp = new Date().toISOString();
-
       const payload = {
-        mode,
-        timestamp,
-        barcode: document.getElementById("barcode").value
+        mode: mode,
+        timestamp: new Date().toISOString(),
+        barcode: document.getElementById("barcode").value,
+        quantity: document.getElementById("quantity").value,
+        comment: document.getElementById("comment").value
       };
 
-      if (mode === "Stocktake") {
+      if (mode === "StockTag") {
         payload.department = document.getElementById("department").value;
         payload.stockDate = document.getElementById("stockDate").value;
-        payload.quantity = document.getElementById("quantity").value;
-        payload.comment = document.getElementById("comment").value;
       } else if (mode === "IDT") {
         payload.fromDept = document.getElementById("fromDept").value;
         payload.toDept = document.getElementById("toDept").value;
-        payload.quantity = document.getElementById("idtQuantity").value;
-        payload.section = document.getElementById("idtSection").value;
       }
 
       fetch("https://script.google.com/macros/s/AKfycby0vYJf7JoIdEjHFNABi6fhh2bO_IVPoOiQ_MEXnn30p3u5RwpGz1OE8_CbrsSZRyX6xQ/exec", {
@@ -157,12 +147,14 @@
       document.getElementById("barcode").value = "";
       document.getElementById("quantity").value = "";
       document.getElementById("comment").value = "";
-      document.getElementById("idtQuantity").value = "";
-      document.getElementById("idtSection").value = "";
     });
 
-    function clearSelections() {
+    function resetForm() {
       document.getElementById("mode").value = "";
+      document.getElementById("stockDate").value = "";
+      document.getElementById("department").value = "";
+      document.getElementById("fromDept").value = "";
+      document.getElementById("toDept").value = "";
       adjustFormFields();
     }
 
