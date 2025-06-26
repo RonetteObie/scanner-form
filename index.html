@@ -68,8 +68,8 @@
       <label for="department">Department:</label>
       <select id="department"></select>
 
-      <label for="barcode">Barcode:</label>
-      <input type="text" id="barcode">
+      <label for="barcodeStocktake">Barcode:</label>
+      <input type="text" id="barcodeStocktake">
 
       <label for="quantity">Quantity:</label>
       <input type="number" id="quantity" min="0">
@@ -85,9 +85,6 @@
       <label for="toDept">To Department:</label>
       <select id="toDept"></select>
 
-      <label for="barcode">Barcode:</label>
-      <input type="text" id="barcode">
-
       <label for="idtQuantity">Quantity:</label>
       <input type="number" id="idtQuantity" min="0">
 
@@ -96,8 +93,8 @@
     </div>
 
     <div id="oosFields" style="display:none">
-      <label for="barcode">Barcode:</label>
-      <input type="text" id="barcode">
+      <label for="barcodeOOS">Barcode:</label>
+      <input type="text" id="barcodeOOS">
 
       <label for="oosComment">Comment (optional):</label>
       <textarea id="oosComment" rows="3"></textarea>
@@ -138,25 +135,24 @@
     document.getElementById("scannerForm").addEventListener("submit", function(e) {
       e.preventDefault();
       const mode = document.getElementById("mode").value;
-      const timestamp = new Date().toISOString();
       const pin = document.getElementById("pin").value;
+      const timestamp = new Date().toISOString();
 
       const payload = { mode, timestamp, pin };
 
       if (mode === "Stocktake") {
         payload.stockDate = document.getElementById("stockDate").value;
         payload.department = document.getElementById("department").value;
-        payload.barcode = document.getElementById("barcode").value;
+        payload.barcode = document.getElementById("barcodeStocktake").value;
         payload.quantity = document.getElementById("quantity").value;
         payload.comment = document.getElementById("comment").value;
       } else if (mode === "IDT") {
         payload.fromDept = document.getElementById("fromDept").value;
         payload.toDept = document.getElementById("toDept").value;
-        payload.barcode = document.getElementById("barcode").value;
         payload.quantity = document.getElementById("idtQuantity").value;
         payload.comment = document.getElementById("idtComment").value;
       } else if (mode === "OOS") {
-        payload.barcode = document.getElementById("barcode").value;
+        payload.barcode = document.getElementById("barcodeOOS").value;
         payload.comment = document.getElementById("oosComment").value;
       }
 
@@ -169,11 +165,13 @@
 
       alert("✅ Submitted successfully");
 
-      document.getElementById("barcode").value = "";
+      // Clear only fields that must reset after submit
+      document.getElementById("barcodeStocktake").value = "";
       document.getElementById("quantity").value = "";
       document.getElementById("comment").value = "";
       document.getElementById("idtQuantity").value = "";
       document.getElementById("idtComment").value = "";
+      document.getElementById("barcodeOOS").value = "";
       document.getElementById("oosComment").value = "";
     });
 
@@ -183,6 +181,7 @@
       document.getElementById("department").value = "";
       document.getElementById("fromDept").value = "";
       document.getElementById("toDept").value = "";
+      document.getElementById("pin").value = "";
       adjustFormFields();
     }
 
