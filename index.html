@@ -50,6 +50,9 @@
   <form id="scannerForm">
     <h2>BURFAM Scanner App</h2>
 
+    <label for="pin">Pin Code:</label>
+    <input type="password" id="pin" name="pin" required>
+
     <label for="mode">Scan Mode:</label>
     <select id="mode" name="mode" required onchange="adjustFormFields()">
       <option value="">Select Mode</option>
@@ -133,10 +136,12 @@
       e.preventDefault();
       const mode = document.getElementById("mode").value;
       const timestamp = new Date().toISOString();
+      const pin = document.getElementById("pin").value;
 
       const payload = {
         mode,
         timestamp,
+        pin,
         barcode: document.getElementById("barcode").value
       };
 
@@ -181,11 +186,6 @@
       fillDropdown("fromDept");
       fillDropdown("toDept");
     };
-
-    // Hook for Scan to Web app
-    function scantowebsubmit() {
-      document.getElementById("scannerForm").dispatchEvent(new Event('submit', { bubbles: true }));
-    }
   </script>
 </body>
 </html>
