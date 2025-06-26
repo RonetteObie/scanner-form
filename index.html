@@ -50,9 +50,6 @@
   <form id="scannerForm">
     <h2>BURFAM Scanner App</h2>
 
-    <label for="pin">Pin Code:</label>
-    <input type="password" id="pin" name="pin" required>
-
     <label for="mode">Scan Mode:</label>
     <select id="mode" name="mode" required onchange="adjustFormFields()">
       <option value="">Select Mode</option>
@@ -78,6 +75,9 @@
 
       <label for="comment">Comment (optional):</label>
       <textarea id="comment" rows="3" placeholder="E.g. Bulk item, Buy-in, etc."></textarea>
+
+      <label for="pin">Pin Code:</label>
+      <input type="password" id="pin" name="pin" required>
     </div>
 
     <div id="idtFields" style="display:none">
@@ -92,11 +92,17 @@
 
       <label for="idtComment">Comment (optional):</label>
       <textarea id="idtComment" rows="3"></textarea>
+
+      <label for="pin">Pin Code:</label>
+      <input type="password" id="pin" name="pin" required>
     </div>
 
     <div id="oosFields" style="display:none">
       <label for="oosComment">Comment (optional):</label>
       <textarea id="oosComment" rows="3"></textarea>
+
+      <label for="pin">Pin Code:</label>
+      <input type="password" id="pin" name="pin" required>
     </div>
 
     <button type="submit">Submit</button>
