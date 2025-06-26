@@ -76,8 +76,8 @@
       <label for="comment">Comment (optional):</label>
       <textarea id="comment" rows="3" placeholder="E.g. Bulk item, Buy-in, etc."></textarea>
 
-      <label for="pin">Pin Code:</label>
-      <input type="password" id="pin" name="pin" required>
+      <label for="pinStock">Pin Code:</label>
+      <input type="password" id="pinStock" name="pin">
     </div>
 
     <div id="idtFields" style="display:none">
@@ -93,16 +93,16 @@
       <label for="idtComment">Comment (optional):</label>
       <textarea id="idtComment" rows="3"></textarea>
 
-      <label for="pin">Pin Code:</label>
-      <input type="password" id="pin" name="pin" required>
+      <label for="pinIDT">Pin Code:</label>
+      <input type="password" id="pinIDT" name="pin">
     </div>
 
     <div id="oosFields" style="display:none">
       <label for="oosComment">Comment (optional):</label>
       <textarea id="oosComment" rows="3"></textarea>
 
-      <label for="pin">Pin Code:</label>
-      <input type="password" id="pin" name="pin" required>
+      <label for="pinOOS">Pin Code:</label>
+      <input type="password" id="pinOOS" name="pin">
     </div>
 
     <button type="submit">Submit</button>
@@ -142,7 +142,15 @@
       e.preventDefault();
       const mode = document.getElementById("mode").value;
       const timestamp = new Date().toISOString();
-      const pin = document.getElementById("pin").value;
+      let pin = "";
+
+      if (mode === "Stocktake") {
+        pin = document.getElementById("pinStock").value;
+      } else if (mode === "IDT") {
+        pin = document.getElementById("pinIDT").value;
+      } else if (mode === "OOS") {
+        pin = document.getElementById("pinOOS").value;
+      }
 
       const payload = {
         mode,
