@@ -61,23 +61,12 @@
       <option value="IDT">Inter Department Transfer (IDT)</option>
     </select>
 
-    <div id="commonFields" style="display:none">
-      <label for="barcode">Barcode:</label>
-      <input type="text" id="barcode" name="barcode" required>
-    </div>
-
     <div id="stocktakeFields" style="display:none">
       <label for="stockDate">Date of Stocktake:</label>
       <input type="date" id="stockDate">
 
       <label for="department">Department:</label>
       <select id="department"></select>
-
-      <label for="quantity">Quantity:</label>
-      <input type="number" id="quantity" min="0">
-
-      <label for="comment">Comment (optional):</label>
-      <textarea id="comment" rows="3" placeholder="E.g. Bulk item, Buy-in, etc."></textarea>
     </div>
 
     <div id="idtFields" style="display:none">
@@ -86,17 +75,32 @@
 
       <label for="toDept">To Department:</label>
       <select id="toDept"></select>
-
-      <label for="idtQuantity">Quantity:</label>
-      <input type="number" id="idtQuantity" min="0">
-
-      <label for="idtComment">Comment (optional):</label>
-      <textarea id="idtComment" rows="3"></textarea>
     </div>
 
-    <div id="oosFields" style="display:none">
-      <label for="oosComment">Comment (optional):</label>
-      <textarea id="oosComment" rows="3"></textarea>
+    <div id="commonFields" style="display:none">
+      <label for="barcode">Barcode:</label>
+      <input type="text" id="barcode" name="barcode" required>
+
+      <div id="stocktakeExtra" style="display:none">
+        <label for="quantity">Quantity:</label>
+        <input type="number" id="quantity" min="0">
+
+        <label for="comment">Comment (optional):</label>
+        <textarea id="comment" rows="3" placeholder="E.g. Bulk item, Buy-in, etc."></textarea>
+      </div>
+
+      <div id="idtExtra" style="display:none">
+        <label for="idtQuantity">Quantity:</label>
+        <input type="number" id="idtQuantity" min="0">
+
+        <label for="idtComment">Comment (optional):</label>
+        <textarea id="idtComment" rows="3"></textarea>
+      </div>
+
+      <div id="oosExtra" style="display:none">
+        <label for="oosComment">Comment (optional):</label>
+        <textarea id="oosComment" rows="3"></textarea>
+      </div>
     </div>
 
     <button type="submit">Submit</button>
@@ -126,18 +130,24 @@
 
     function adjustFormFields() {
       const mode = document.getElementById("mode").value;
-      document.getElementById("commonFields").style.display = mode ? 'block' : 'none';
       document.getElementById("stocktakeFields").style.display = (mode === 'Stocktake') ? 'block' : 'none';
       document.getElementById("idtFields").style.display = (mode === 'IDT') ? 'block' : 'none';
-      document.getElementById("oosFields").style.display = (mode === 'OOS') ? 'block' : 'none';
+      document.getElementById("commonFields").style.display = mode ? 'block' : 'none';
+      document.getElementById("stocktakeExtra").style.display = (mode === 'Stocktake') ? 'block' : 'none';
+      document.getElementById("idtExtra").style.display = (mode === 'IDT') ? 'block' : 'none';
+      document.getElementById("oosExtra").style.display = (mode === 'OOS') ? 'block' : 'none';
     }
 
     document.getElementById("scannerForm").addEventListener("submit", function(e) {
       e.preventDefault();
       const mode = document.getElementById("mode").value;
+      const timestamp = new Date().toISOString();
+      const name = document.getElementById("name").value;
+
       const payload = {
         mode,
-        name: document.getElementById("name").value,
+        timestamp,
+        name,
         barcode: document.getElementById("barcode").value
       };
 
@@ -155,7 +165,7 @@
         payload.comment = document.getElementById("oosComment").value;
       }
 
-      fetch("https://script.google.com/macros/s/AKfycbwqAqyaSIldxlgVGykK0lSRJ5yLTkmJDrXT92GGn6thYK0zDkgEb20Ol803s5r9AIfuDw/exec", {
+      fetch("https://script.google.com/macros/s/AKfycby0vYJf7JoIdEjHFNABi6fhh2bO_IVPoOiQ_MEXnn30p3u5RwpGz1OE8_CbrsSZRyX6xQ/exec", {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
@@ -163,7 +173,6 @@
       });
 
       alert("✅ Submitted successfully");
-
       document.getElementById("barcode").value = "";
       document.getElementById("quantity").value = "";
       document.getElementById("comment").value = "";
