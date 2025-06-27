@@ -1,195 +1,77 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>BURFAM Scanner App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%;
-    }
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100%;
-      width: 100vw;
-      overflow-x: hidden;
-    }
-    form {
-      width: 90vw;
-      max-width: 400px;
-    }
-    label {
-      display: block;
-      margin-top: 15px;
-    }
-    input, select, button, textarea {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      font-size: 1rem;
-      box-sizing: border-box;
-    }
-    button {
-      margin-top: 20px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-    }
-    .btn-secondary {
-      background-color: #888;
-      margin-top: 10px;
-    }
-  </style>
-</head>
-<body>
-  <form id="scannerForm">
-    <h2>BURFAM Scanner App</h2>
+function doPost(e) {
+  const sheetMap = {
+    "Stocktake": "StockTag",
+    "OOS": "OOS",
+    "IDT": "IDT"
+  };
 
-    <label for="pin">Pin Code:</label>
-    <input type="number" id="pin" name="pin" required>
+  const data = JSON.parse(e.postData.contents);
+  const mode = data.mode;
+  const sheetName = sheetMap[mode];
 
-    <label for="mode">Scan Mode:</label>
-    <select id="mode" name="mode" required onchange="adjustFormFields()">
-      <option value="">Select Mode</option>
-      <option value="Stocktake">Stocktake</option>
-      <option value="OOS">Out of Stock</option>
-      <option value="IDT">Inter Department Transfer (IDT)</option>
-    </select>
+  if (!sheetName) return ContentService.createTextOutput("Invalid mode");
 
-    <div id="stocktakeFields" style="display:none">
-      <label for="stockDate">Date of Stocktake:</label>
-      <input type="date" id="stockDate">
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  const now = new Date();
 
-      <label for="department">Department:</label>
-      <select id="department"></select>
+  if (mode === "Stocktake") {
+    sheet.appendRow([
+      now,
+      data.name || "",
+      data.department || "",
+      data.stockDate || "",
+      data.barcode || "",
+      data.quantity || "",
+      data.comment || ""
+    ]);
+  } else if (mode === "OOS") {
+    sheet.appendRow([
+      now,
+      data.name || "",
+      data.barcode || "",
+      data.comment || ""
+    ]);
+  } else if (mode === "IDT") {
+    sheet.appendRow([
+      now,
+      data.name || "",
+      data.barcode || "",
+      data.fromDept || "",
+      data.toDept || "",
+      data.quantity || "",
+      data.comment || ""
+    ]);
+  }
 
-      <label for="barcodeStocktake">Barcode:</label>
-      <input type="text" id="barcodeStocktake">
+  return ContentService.createTextOutput("Success");
+}
 
-      <label for="quantity">Quantity:</label>
-      <input type="number" id="quantity" min="0">
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu("Scanner Tools")
+    .addItem("Clear Stocktake Data", "clearStocktakeData")
+    .addToUi();
+}
 
-      <label for="comment">Comment (optional):</label>
-      <textarea id="comment" rows="3"></textarea>
-    </div>
+function clearStocktakeData() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("StockTag");
+  const lastRow = sheet.getLastRow();
 
-    <div id="idtFields" style="display:none">
-      <label for="fromDept">From Department:</label>
-      <select id="fromDept"></select>
+  if (lastRow <= 1) {
+    SpreadsheetApp.getUi().alert("Nothing to clear.");
+    return;
+  }
 
-      <label for="toDept">To Department:</label>
-      <select id="toDept"></select>
+  const folder = DriveApp.getFolderById("1ASC0HsIq864DWX9_-cy5uVkMW7okzapy");
+  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd_HHmmss");
+  const backupName = `Backup_Stocktake_${timestamp}`;
+  const backup = ss.copy(backupName);
 
-      <label for="idtQuantity">Quantity:</label>
-      <input type="number" id="idtQuantity" min="0">
+  folder.addFile(DriveApp.getFileById(backup.getId()));
+  DriveApp.getRootFolder().removeFile(DriveApp.getFileById(backup.getId()));
 
-      <label for="idtComment">Comment (optional):</label>
-      <textarea id="idtComment" rows="3"></textarea>
-    </div>
-
-    <div id="oosFields" style="display:none">
-      <label for="barcodeOOS">Barcode:</label>
-      <input type="text" id="barcodeOOS">
-
-      <label for="oosComment">Comment (optional):</label>
-      <textarea id="oosComment" rows="3"></textarea>
-    </div>
-
-    <button type="submit">Submit</button>
-    <button type="button" class="btn-secondary" onclick="clearSelections()">Reset</button>
-  </form>
-
-  <script>
-    const departments = [
-      "BAKERY CONFEC", "BUTCHERY", "DELICATESSEN", "FRUIT & VEG", "FAST FOODS",
-      "BEAN TREE", "BULK CHEESE", "SUSHI", "WHY NOT", "CHIKKA CHICKEN", "BAKERY BREAD",
-      "BAKERY CONFEC_INGREDIENTS", "BUTCHERY_INGREDIENTS", "DELICATESSEN_INGREDIENTS",
-      "FRUIT & VEG_INGREDIENTS", "FAST FOODS_INGREDIENTS", "BEAN TREE_INGREDIENTS",
-      "BULK CHEESE_INGREDIENTS", "SUSHI_INGREDIENTS", "WHY NOT_INGREDIENTS",
-      "CHIKKA CHICKEN_INGREDIENTS", "BAKERY BREAD_INGREDIENTS"
-    ];
-
-    const fillDropdown = (id) => {
-      const select = document.getElementById(id);
-      select.innerHTML = '<option value="">Select</option>';
-      departments.forEach(dept => {
-        const opt = document.createElement('option');
-        opt.value = dept;
-        opt.text = dept;
-        select.add(opt);
-      });
-    };
-
-    function adjustFormFields() {
-      const mode = document.getElementById("mode").value;
-      document.getElementById("stocktakeFields").style.display = (mode === 'Stocktake') ? 'block' : 'none';
-      document.getElementById("idtFields").style.display = (mode === 'IDT') ? 'block' : 'none';
-      document.getElementById("oosFields").style.display = (mode === 'OOS') ? 'block' : 'none';
-    }
-
-    document.getElementById("scannerForm").addEventListener("submit", function(e) {
-      e.preventDefault();
-      const mode = document.getElementById("mode").value;
-      const pin = document.getElementById("pin").value;
-      const timestamp = new Date().toISOString();
-
-      const payload = { mode, timestamp, pin };
-
-      if (mode === "Stocktake") {
-        payload.stockDate = document.getElementById("stockDate").value;
-        payload.department = document.getElementById("department").value;
-        payload.barcode = document.getElementById("barcodeStocktake").value;
-        payload.quantity = document.getElementById("quantity").value;
-        payload.comment = document.getElementById("comment").value;
-      } else if (mode === "IDT") {
-        payload.fromDept = document.getElementById("fromDept").value;
-        payload.toDept = document.getElementById("toDept").value;
-        payload.quantity = document.getElementById("idtQuantity").value;
-        payload.comment = document.getElementById("idtComment").value;
-      } else if (mode === "OOS") {
-        payload.barcode = document.getElementById("barcodeOOS").value;
-        payload.comment = document.getElementById("oosComment").value;
-      }
-
-      fetch("https://script.google.com/macros/s/AKfycbwqAqyaSIldxlgVGykK0lSRJ5yLTkmJDrXT92GGn6thYK0zDkgEb20Ol803s5r9AIfuDw/exec", {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      alert("✅ Submitted successfully");
-
-      // Clear only fields that must reset after submit
-      document.getElementById("barcodeStocktake").value = "";
-      document.getElementById("quantity").value = "";
-      document.getElementById("comment").value = "";
-      document.getElementById("idtQuantity").value = "";
-      document.getElementById("idtComment").value = "";
-      document.getElementById("barcodeOOS").value = "";
-      document.getElementById("oosComment").value = "";
-    });
-
-    function clearSelections() {
-      document.getElementById("mode").value = "";
-      document.getElementById("stockDate").value = "";
-      document.getElementById("department").value = "";
-      document.getElementById("fromDept").value = "";
-      document.getElementById("toDept").value = "";
-      document.getElementById("pin").value = "";
-      adjustFormFields();
-    }
-
-    window.onload = function() {
-      fillDropdown("department");
-      fillDropdown("fromDept");
-      fillDropdown("toDept");
-    };
-  </script>
-</body>
-</html>
+  sheet.getRange("A2:G" + lastRow).clearContent();
+  SpreadsheetApp.getUi().alert("✅ Stocktake log backed up and cleared. Ready for next scan.");
+}
