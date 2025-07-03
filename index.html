@@ -176,6 +176,8 @@
         payload.comment = document.getElementById("oosComment").value;
       }
 
+      console.log("Submitting payload:", payload);
+
       fetch("https://script.google.com/macros/s/AKfycbwqAqyaSIldxlgVGykK0lSRJ5yLTkmJDrXT92GGn6thYK0zDkgEb20Ol803s5r9AIfuDw/exec", {
         method: "POST",
         mode: "no-cors",
@@ -183,7 +185,7 @@
         body: JSON.stringify(payload)
       });
 
-      alert("Received - Check field before scanning");
+      alert("✅ Submitted successfully");
 
       // Reset only fields that should clear after each scan
       document.getElementById("barcode").value = "";
@@ -207,7 +209,6 @@
       fillDropdown("toDept");
     };
 
-    // === Auto-submit after barcode scan for Scan to Web ===
     function scantowebsubmit() {
       const barcodeInput = document.getElementById("barcode");
       if (barcodeInput && barcodeInput.value.trim() !== "") {
