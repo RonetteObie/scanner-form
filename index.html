@@ -53,6 +53,14 @@
     <label for="name">Your Name:</label>
     <input type="text" id="name" name="name" required>
 
+    <label for="store">Select Store:</label>
+    <select id="store" name="store" required>
+      <option value="">Select Store</option>
+      <option value="Springbok Superspar">Springbok Superspar</option>
+      <option value="Vredendal Superspar">Vredendal Superspar</option>
+      <option value="Port Nolloth Spar">Port Nolloth Spar</option>
+    </select>
+
     <label for="mode">Scan Mode:</label>
     <select id="mode" name="mode" required onchange="adjustFormFields()">
       <option value="">Select Mode</option>
@@ -143,11 +151,13 @@
       const mode = document.getElementById("mode").value;
       const timestamp = new Date().toISOString();
       const name = document.getElementById("name").value;
+      const store = document.getElementById("store").value;
 
       const payload = {
         mode,
         timestamp,
         name,
+        store,
         barcode: document.getElementById("barcode").value
       };
 
@@ -184,6 +194,7 @@
     function clearSelections() {
       document.getElementById("mode").value = "";
       document.getElementById("name").value = "";
+      document.getElementById("store").value = "";
       adjustFormFields();
     }
 
