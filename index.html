@@ -182,7 +182,7 @@
         body: JSON.stringify(payload)
       });
 
-      alert("DONE! :) Next...");
+      alert("DONE!-check barcode before submit");
       document.getElementById("barcode").value = "";
       document.getElementById("quantity").value = "";
       document.getElementById("comment").value = "";
@@ -203,6 +203,15 @@
       fillDropdown("fromDept");
       fillDropdown("toDept");
     };
+
+    // === Auto-submit after barcode scan for Scan to Web ===
+    function scantowebsubmit() {
+      const barcodeInput = document.getElementById("barcode");
+      if (barcodeInput && barcodeInput.value.trim() !== "") {
+        document.querySelector("form").requestSubmit();
+      }
+    }
+    scantowebsubmit();
   </script>
 </body>
 </html>
