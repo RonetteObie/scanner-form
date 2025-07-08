@@ -56,9 +56,15 @@
     <h2>BURFAM Scanner App</h2>
 
     <label for="name">Your Name + Store Code:</label>
-    <input type="text" id="name" name="name" required placeholder="e.g. Ronette SBK">
-    <div class="note">Use format: <b>Name + Store Code</b>            (e.g. Ronette SBK)<br>
-    Store Codes: <b>SBK</b> = Springbok, <b>PN</b> = Port Nolloth, <b>VRD</b> = Vredendal</div>
+<input type="text" id="name" name="name" required placeholder="e.g. Ronette SBK">
+<small style="display:block; margin-top:5px; font-size:0.9rem; color:#333;">
+  Use format: <b>Name + Store Code</b><br>
+  <i>(e.g. Ronette SBK)</i><br>
+  <b>Store Codes:</b><br>
+  SBK = Springbok<br>
+  PN = Port Nolloth<br>
+  VRD = Vredendal
+</small>
 
     <label for="mode">Scan Mode:</label>
     <select id="mode" name="mode" required onchange="adjustFormFields()">
