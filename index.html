@@ -44,17 +44,21 @@
       background-color: #888;
       margin-top: 10px;
     }
+    .note {
+      font-size: 0.85rem;
+      color: #555;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
   <form id="scannerForm">
     <h2>BURFAM Scanner App</h2>
 
-    <label for="name">Your Name:</label>
-    <input type="text" id="name" name="name" required>
-
-    <label for="store">Store Code:</label>
-    <input type="text" id="store" name="store" required placeholder="e.g. 35064, 35082, 35070">
+    <label for="name">Your Name + Store Code:</label>
+    <input type="text" id="name" name="name" required placeholder="e.g. Ronette SBK">
+    <div class="note">Use format: <b>Name + Store Code</b> (e.g. Ronette SBK)<br>
+    Store Codes: <b>SBK</b> = Springbok, <b>PN</b> = Port Nolloth, <b>VRD</b> = Vredendal</div>
 
     <label for="mode">Scan Mode:</label>
     <select id="mode" name="mode" required onchange="adjustFormFields()">
@@ -145,15 +149,14 @@
       e.preventDefault();
       const mode = document.getElementById("mode").value;
       const timestamp = new Date().toISOString();
-      const name = document.getElementById("name").value;
-      const store = document.getElementById("store").value;
+      const nameField = document.getElementById("name").value;
       const barcode = document.getElementById("barcode").value;
 
       const payload = {
         mode,
         timestamp,
-        name,
-        store,
+        name: nameField,
+        store: nameField.split(" ").pop(), // Extract SBK, PN, VRD
         barcode
       };
 
@@ -193,7 +196,6 @@
     function clearSelections() {
       document.getElementById("mode").value = "";
       document.getElementById("name").value = "";
-      document.getElementById("store").value = "";
       adjustFormFields();
     }
 
