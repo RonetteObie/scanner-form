@@ -56,15 +56,15 @@
     <h2>BURFAM Scanner App</h2>
 
     <label for="name">Your Name + Store Code:</label>
-<input type="text" id="name" name="name" required placeholder="e.g. Ronette SBK">
-<small style="display:block; margin-top:5px; font-size:0.9rem; color:#333;">
-  Use format: <b>Name + Store Code</b><br>
-  <i>(e.g. Ronette SBK)</i><br>
-  <b>Store Codes:</b><br>
-  SBK = Springbok<br>
-  PN = Port Nolloth<br>
-  VRD = Vredendal
-</small>
+    <input type="text" id="name" name="name" required placeholder="e.g. Ronette SBK">
+    <small style="display:block; margin-top:5px; font-size:0.9rem; color:#333;">
+      Use format: <b>Name + Store Code</b><br>
+      <i>(e.g. Ronette SBK)</i><br>
+      <b>Store Codes:</b><br>
+      SBK = Springbok<br>
+      PN = Port Nolloth<br>
+      VRD = Vredendal
+    </small>
 
     <label for="mode">Scan Mode:</label>
     <select id="mode" name="mode" required onchange="adjustFormFields()">
@@ -96,7 +96,7 @@
 
       <div id="stocktakeExtra" style="display:none">
         <label for="quantity">Quantity:</label>
-        <input type="number" id="quantity" min="0" step="any">
+        <input type="number" id="quantity" min="0" step="any" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?">
 
         <label for="comment">Comment (optional):</label>
         <textarea id="comment" rows="3" placeholder="E.g. Bulk item, Buy-in, etc."></textarea>
@@ -104,7 +104,7 @@
 
       <div id="idtExtra" style="display:none">
         <label for="idtQuantity">Quantity:</label>
-        <input type="number" id="idtQuantity" min="0" step="any">
+        <input type="number" id="idtQuantity" min="0" step="any" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?">
 
         <label for="idtComment">Comment (optional):</label>
         <textarea id="idtComment" rows="3"></textarea>
@@ -217,6 +217,7 @@
         document.querySelector("form").requestSubmit();
       }
     }
+
     scantowebsubmit();
   </script>
 </body>
