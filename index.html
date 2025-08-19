@@ -55,8 +55,6 @@
   <form id="scannerForm">
     <h2>BURFAM Scanner App</h2>
 
-    <label for="name">Your Name + Store Code:</label>
-    <input type="text" id="name" name="name" required placeholder="e.g. Ronette SBK">
     <small style="display:block; margin-top:5px; font-size:0.9rem; color:#333;">
       Use format: <b>Name + Store Code</b><br>
       <i>(e.g. Ronette SBK)</i><br>
@@ -65,6 +63,9 @@
       PN = Port Nolloth<br>
       VRD = Vredendal
     </small>
+    <label for="name">Your Name + Store Code:</label>
+    <input type="text" id="name" name="name" required placeholder="e.g. Ronette SBK">
+    
 
     <label for="mode">Scan Mode:</label>
     <select id="mode" name="mode" required onchange="adjustFormFields()">
