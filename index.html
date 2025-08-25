@@ -4,7 +4,12 @@
   <title>BURFAM Scanner App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; }
+    html, body { margin:0; padding:0; height:100%; }
+    /* Reduce pull-to-refresh / overscroll bounce on modern mobile browsers */
+    html, body {
+      overscroll-behavior-y: contain; /* Chrome/Android */
+      touch-action: manipulation;
+    }
     body {
       font-family: sans-serif;
       padding: 20px;
@@ -18,12 +23,14 @@
       overflow-x: hidden;
     }
     form { width: 90vw; max-width: 400px; }
-    label { display: block; margin-top: 15px; }
-    input, select, button, textarea {
-      width: 100%; padding: 10px; margin-top: 5px; font-size: 1rem; box-sizing: border-box;
+    label { display:block; margin-top:15px; }
+    input, select, button {
+      width:100%; padding:10px; margin-top:5px; font-size:1rem; box-sizing:border-box;
     }
-    button { margin-top: 20px; background-color: #4CAF50; color: white; border: none; }
-    .btn-secondary { background-color: #888; margin-top: 10px; }
+    /* Force uppercase entry for Name (+Store) and dropdown text rendering */
+    #name { text-transform: uppercase; }
+    button { margin-top:20px; background:#4CAF50; color:#fff; border:none; }
+    .btn-secondary { background:#888; margin-top:10px; }
   </style>
 </head>
 <body>
@@ -32,7 +39,7 @@
 
     <small style="display:block; margin-top:5px; font-size:0.9rem; color:#333;">
       Use format: <b>Name + Store Code</b><br>
-      <i>(e.g. Ronette SBK)</i><br>
+      <i>(e.g. RONETTE SBK)</i><br>
       <b>Store Codes:</b><br>
       SBK = Springbok<br>
       PN = Port Nolloth<br>
@@ -40,7 +47,7 @@
     </small>
 
     <label for="name">Your Name + Store Code:</label>
-    <input type="text" id="name" name="name" required placeholder="e.g. Ronette SBK">
+    <input type="text" id="name" name="name" required placeholder="e.g. RONETTE SBK">
 
     <label for="mode">Scan Mode:</label>
     <select id="mode" name="mode" required onchange="adjustFormFields()">
@@ -95,7 +102,6 @@
       "BULK CHEESE_INGREDIENTS", "SUSHI_INGREDIENTS", "WHY NOT_INGREDIENTS",
       "CHIKKA CHICKEN_INGREDIENTS", "BAKERY BREAD_INGREDIENTS"
     ];
-
     const fillDropdown = (id) => {
       const select = document.getElementById(id);
       select.innerHTML = '<option value="">Select</option>';
@@ -114,38 +120,62 @@
       document.getElementById("commonFields").style.display = mode ? 'block' : 'none';
       document.getElementById("stocktakeExtra").style.display = (mode === 'Stocktake') ? 'block' : 'none';
       document.getElementById("idtExtra").style.display = (mode === 'IDT') ? 'block' : 'none';
+      // persist mode
+      sessionStorage.setItem("mode", mode || "");
     }
 
-    // ---------- Name lock & persistence ----------
+    // ---------- Name lock & persistence (uppercase enforced) ----------
     const NAME_KEY = "burfam_scanner_name";
     const nameEl = document.getElementById("name");
     function lockNameField(lock) {
       nameEl.readOnly = !!lock;
       nameEl.style.background = lock ? "#f3f3f3" : "";
     }
+    // Force uppercase as user types
+    nameEl.addEventListener("input", () => {
+      const pos = nameEl.selectionStart;
+      nameEl.value = nameEl.value.toUpperCase();
+      nameEl.setSelectionRange(pos, pos);
+    });
 
-    (function initName() {
+    (function initNameAndMode() {
       const saved = localStorage.getItem(NAME_KEY);
       if (saved) {
-        nameEl.value = saved;
+        nameEl.value = saved.toUpperCase();
         lockNameField(true);
       } else {
         lockNameField(false);
       }
+      // restore mode and UI state
+      const savedMode = sessionStorage.getItem("mode") || "";
+      if (savedMode) {
+        document.getElementById("mode").value = savedMode;
+      }
+      fillDropdown("department");
+      fillDropdown("fromDept");
+      fillDropdown("toDept");
+      adjustFormFields();
+      // focus barcode if common fields visible
+      if (document.getElementById("commonFields").style.display !== "none") {
+        document.getElementById("barcode").focus();
+      }
     })();
 
     function ensureNameSaved() {
-      const val = nameEl.value.trim();
+      const val = (nameEl.value || "").trim().toUpperCase();
       if (!val) return false;
       if (!localStorage.getItem(NAME_KEY)) {
         localStorage.setItem(NAME_KEY, val);
+        nameEl.value = val;
         lockNameField(true);
       }
       return true;
     }
 
     document.getElementById("resetBtn").addEventListener("click", function() {
+      // Only Reset clears the name + UI state
       localStorage.removeItem(NAME_KEY);
+      sessionStorage.removeItem("mode");
       nameEl.value = "";
       lockNameField(false);
       document.getElementById("mode").value = "";
@@ -157,18 +187,20 @@
       nameEl.focus();
     });
 
-    // ---------- Force scan only into Barcode ----------
+    // ---------- Guard: only scan into numeric fields ----------
     document.addEventListener("keydown", (e) => {
       const isDigit = e.key >= "0" && e.key <= "9";
       if (!isDigit) return;
       const active = document.activeElement;
-      if (active.id !== "barcode" && active.id !== "quantity" && active.id !== "idtQuantity") {
+      const ok = ["barcode","quantity","idtQuantity"].includes(active?.id);
+      if (!ok) {
         e.preventDefault();
         alert("Please scan in the BARCODE field.");
         document.getElementById("barcode").focus();
       }
     }, true);
 
+    // Prevent editing locked name
     nameEl.addEventListener("beforeinput", (e) => {
       if (nameEl.readOnly) e.preventDefault();
     });
@@ -178,21 +210,24 @@
       e.preventDefault();
 
       if (!ensureNameSaved()) {
-        alert("Please enter your Name + Store Code (e.g. Ronette SBK)");
+        alert("Please enter your Name + Store Code (e.g. RONETTE SBK)");
         nameEl.focus();
         return;
       }
 
       const mode = document.getElementById("mode").value;
       const timestamp = new Date().toISOString();
-      const nameField = nameEl.value.trim();
-      const barcode = document.getElementById("barcode").value.trim();
+      const nameField = nameEl.value.trim().toUpperCase();
+      const barcodeEl = document.getElementById("barcode");
+      const barcode = barcodeEl.value.trim(); // barcode stays as typed (usually digits)
+
+      const storeCode = nameField.split(" ").pop().toUpperCase();
 
       const payload = {
         mode,
         timestamp,
         name: nameField,
-        store: nameField.split(" ").pop(),
+        store: storeCode,
         barcode
       };
 
@@ -213,21 +248,25 @@
         body: JSON.stringify(payload)
       });
 
-      alert("DONE - Check before submit");
-
+      // Clear only numeric fields and refocus barcode for the next scan
       ["barcode","quantity","idtQuantity"].forEach(id=>{
         const el = document.getElementById(id);
         if (el) el.value = "";
       });
-      document.getElementById("barcode").focus();
+      barcodeEl.focus();
     });
 
-    window.onload = function() {
-      fillDropdown("department");
-      fillDropdown("fromDept");
-      fillDropdown("toDept");
-      adjustFormFields();
-    };
+    // Optional: if the browser does hard refresh, restore focus/state again
+    window.addEventListener("pageshow", () => {
+      const mode = sessionStorage.getItem("mode");
+      if (mode) {
+        document.getElementById("mode").value = mode;
+        adjustFormFields();
+        if (document.getElementById("commonFields").style.display !== "none") {
+          document.getElementById("barcode").focus();
+        }
+      }
+    });
   </script>
 </body>
 </html>
