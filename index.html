@@ -4,60 +4,68 @@
   <title>BURFAM Scanner App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    html, body { margin:0; padding:0; height:100%; }
-    /* Reduce pull-to-refresh / overscroll bounce on modern mobile browsers */
-    html, body {
-      overscroll-behavior-y: contain; /* Chrome/Android */
-      touch-action: manipulation;
-    }
+    html, body { margin:0; padding:0; height:100%; overscroll-behavior-y: contain; touch-action: manipulation; }
     body {
-      font-family: sans-serif;
-      padding: 20px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100%;
-      width: 100vw;
-      overflow-x: hidden;
+      font-family: sans-serif; padding:20px; box-sizing:border-box;
+      display:flex; flex-direction:column; justify-content:center; align-items:center;
+      height:100%; width:100vw; overflow-x:hidden;
     }
-    form { width: 90vw; max-width: 400px; }
+    form { width:90vw; max-width:400px; }
     label { display:block; margin-top:15px; }
-    input, select, button {
-      width:100%; padding:10px; margin-top:5px; font-size:1rem; box-sizing:border-box;
-    }
-    /* Force uppercase entry for Name (+Store) and dropdown text rendering */
-    #name { text-transform: uppercase; }
+    input, select, button { width:100%; padding:10px; margin-top:5px; font-size:1rem; box-sizing:border-box; }
     button { margin-top:20px; background:#4CAF50; color:#fff; border:none; }
     .btn-secondary { background:#888; margin-top:10px; }
+    /* Uppercase for identity entry */
+    #nameInput { text-transform: uppercase; }
+    /* Info panel (read-only display) */
+    .info-panel { background:#f6f7f9; border:1px solid #e3e5e8; border-radius:10px; padding:10px 12px; margin-top:10px; }
+    .info-row { display:flex; justify-content:space-between; font-size:0.95rem; margin:4px 0; }
+    .info-key { color:#555; }
+    .info-val { font-weight:600; }
+    .hidden { display:none !important; }
   </style>
 </head>
 <body>
   <form id="scannerForm" autocomplete="off">
     <h2>BURFAM Scanner App</h2>
 
-    <small style="display:block; margin-top:5px; font-size:0.9rem; color:#333;">
-      Use format: <b>Name + Store Code</b><br>
-      <i>(e.g. RONETTE SBK)</i><br>
-      <b>Store Codes:</b><br>
-      SBK = Springbok<br>
-      PN = Port Nolloth<br>
-      VRD = Vredendal
-    </small>
+    <!-- Identity INPUTS (shown only until locked) -->
+    <div id="identityInputs">
+      <small style="display:block; margin-top:5px; font-size:0.9rem; color:#333;">
+        Use format: <b>Name + Store Code</b><br>
+        <i>(e.g. RONETTE SBK)</i><br>
+        <b>Store Codes:</b><br>
+        SBK = Springbok<br>
+        PN = Port Nolloth<br>
+        VRD = Vredendal
+      </small>
 
-    <label for="name">Your Name + Store Code:</label>
-    <input type="text" id="name" name="name" required placeholder="e.g. RONETTE SBK">
+      <label for="nameInput">Your Name + Store Code:</label>
+      <input type="text" id="nameInput" required placeholder="e.g. RONETTE SBK">
 
-    <label for="mode">Scan Mode:</label>
-    <select id="mode" name="mode" required onchange="adjustFormFields()">
-      <option value="">Select Mode</option>
-      <option value="Stocktake">Stocktake</option>
-      <option value="OOS">Out of Stock</option>
-      <option value="IDT">Inter Department Transfer (IDT)</option>
-    </select>
+      <label for="modeInput">Scan Mode:</label>
+      <select id="modeInput" required>
+        <option value="">Select Mode</option>
+        <option value="Stocktake">Stocktake</option>
+        <option value="OOS">Out of Stock</option>
+        <option value="IDT">Inter Department Transfer (IDT)</option>
+      </select>
+    </div>
 
-    <div id="stocktakeFields" style="display:none">
+    <!-- Identity DISPLAY (read-only, replaces inputs once set) -->
+    <div id="identityDisplay" class="info-panel hidden" aria-hidden="true">
+      <div class="info-row"><span class="info-key">Name</span><span id="nameText" class="info-val"></span></div>
+      <div class="info-row"><span class="info-key">Store</span><span id="storeText" class="info-val"></span></div>
+      <div class="info-row"><span class="info-key">Mode</span><span id="modeText" class="info-val"></span></div>
+    </div>
+
+    <!-- Hidden fields to submit identity when display-only -->
+    <input type="hidden" id="nameHidden">
+    <input type="hidden" id="storeHidden">
+    <input type="hidden" id="modeHidden">
+
+    <!-- Mode-specific extra fields -->
+    <div id="stocktakeFields" class="hidden">
       <label for="stockDate">Date of Stocktake:</label>
       <input type="date" id="stockDate">
 
@@ -65,26 +73,24 @@
       <select id="department"></select>
     </div>
 
-    <div id="idtFields" style="display:none">
+    <div id="idtFields" class="hidden">
       <label for="fromDept">From Department:</label>
       <select id="fromDept"></select>
 
       <label for="toDept">To Department:</label>
       <select id="toDept"></select>
+
+      <label for="idtQuantity">Quantity:</label>
+      <input type="number" id="idtQuantity" min="0" step="any" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?">
     </div>
 
-    <div id="commonFields" style="display:none">
+    <!-- Common scan area -->
+    <div id="commonFields" class="hidden">
       <label for="barcode">Barcode:</label>
-      <input type="text" id="barcode" name="barcode" required inputmode="numeric" pattern="[0-9]*">
-
-      <div id="stocktakeExtra" style="display:none">
+      <input type="text" id="barcode" required inputmode="numeric" pattern="[0-9]*">
+      <div id="stocktakeExtra" class="hidden">
         <label for="quantity">Quantity:</label>
         <input type="number" id="quantity" min="0" step="any" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?">
-      </div>
-
-      <div id="idtExtra" style="display:none">
-        <label for="idtQuantity">Quantity:</label>
-        <input type="number" id="idtQuantity" min="0" step="any" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?">
       </div>
     </div>
 
@@ -93,143 +99,208 @@
   </form>
 
   <script>
-    // ---------- Dropdown data ----------
+    // --- Data for dropdowns ---
     const departments = [
-      "BAKERY CONFEC", "BUTCHERY", "DELICATESSEN", "FRUIT & VEG", "FAST FOODS",
-      "BEAN TREE", "BULK CHEESE", "SUSHI", "WHY NOT", "CHIKKA CHICKEN", "BAKERY BREAD",
-      "BAKERY CONFEC_INGREDIENTS", "BUTCHERY_INGREDIENTS", "DELICATESSEN_INGREDIENTS",
-      "FRUIT & VEG_INGREDIENTS", "FAST FOODS_INGREDIENTS", "BEAN TREE_INGREDIENTS",
-      "BULK CHEESE_INGREDIENTS", "SUSHI_INGREDIENTS", "WHY NOT_INGREDIENTS",
-      "CHIKKA CHICKEN_INGREDIENTS", "BAKERY BREAD_INGREDIENTS"
+      "BAKERY CONFEC","BUTCHERY","DELICATESSEN","FRUIT & VEG","FAST FOODS","BEAN TREE","BULK CHEESE",
+      "SUSHI","WHY NOT","CHIKKA CHICKEN","BAKERY BREAD",
+      "BAKERY CONFEC_INGREDIENTS","BUTCHERY_INGREDIENTS","DELICATESSEN_INGREDIENTS",
+      "FRUIT & VEG_INGREDIENTS","FAST FOODS_INGREDIENTS","BEAN TREE_INGREDIENTS",
+      "BULK CHEESE_INGREDIENTS","SUSHI_INGREDIENTS","WHY NOT_INGREDIENTS","CHIKKA CHICKEN_INGREDIENTS",
+      "BAKERY BREAD_INGREDIENTS"
     ];
     const fillDropdown = (id) => {
-      const select = document.getElementById(id);
-      select.innerHTML = '<option value="">Select</option>';
-      departments.forEach(dept => {
-        const opt = document.createElement('option');
-        opt.value = dept;
-        opt.textContent = dept;
-        select.add(opt);
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Select</option>';
+      departments.forEach(d => {
+        const o = document.createElement('option');
+        o.value = o.textContent = d;
+        sel.add(o);
       });
     };
 
-    function adjustFormFields() {
-      const mode = document.getElementById("mode").value;
-      document.getElementById("stocktakeFields").style.display = (mode === 'Stocktake') ? 'block' : 'none';
-      document.getElementById("idtFields").style.display = (mode === 'IDT') ? 'block' : 'none';
-      document.getElementById("commonFields").style.display = mode ? 'block' : 'none';
-      document.getElementById("stocktakeExtra").style.display = (mode === 'Stocktake') ? 'block' : 'none';
-      document.getElementById("idtExtra").style.display = (mode === 'IDT') ? 'block' : 'none';
-      // persist mode
-      sessionStorage.setItem("mode", mode || "");
-    }
+    // --- Elements ---
+    const nameInput = document.getElementById('nameInput');
+    const modeInput = document.getElementById('modeInput');
+    const barcodeEl = document.getElementById('barcode');
 
-    // ---------- Name lock & persistence (uppercase enforced) ----------
+    const identityInputs = document.getElementById('identityInputs');
+    const identityDisplay = document.getElementById('identityDisplay');
+    const nameText = document.getElementById('nameText');
+    const storeText = document.getElementById('storeText');
+    const modeText = document.getElementById('modeText');
+
+    const nameHidden = document.getElementById('nameHidden');
+    const storeHidden = document.getElementById('storeHidden');
+    const modeHidden = document.getElementById('modeHidden');
+
+    const stocktakeFields = document.getElementById('stocktakeFields');
+    const idtFields = document.getElementById('idtFields');
+    const commonFields = document.getElementById('commonFields');
+    const stocktakeExtra = document.getElementById('stocktakeExtra');
+
+    // --- Persistence keys ---
     const NAME_KEY = "burfam_scanner_name";
-    const nameEl = document.getElementById("name");
-    function lockNameField(lock) {
-      nameEl.readOnly = !!lock;
-      nameEl.style.background = lock ? "#f3f3f3" : "";
+    const MODE_KEY = "burfam_scanner_mode";
+
+    // --- Helpers ---
+    const toUpperLive = (el) => {
+      el.addEventListener("input", () => {
+        const pos = el.selectionStart;
+        el.value = el.value.toUpperCase();
+        if (document.activeElement === el) el.setSelectionRange(pos, pos);
+      });
+    };
+
+    function storeFromName(upperName) {
+      const token = (upperName || "").trim().split(/\s+/).pop() || "";
+      if (["SBK","PN","VRD"].includes(token)) return token;
+      return "UNKNOWN";
     }
-    // Force uppercase as user types
-    nameEl.addEventListener("input", () => {
-      const pos = nameEl.selectionStart;
-      nameEl.value = nameEl.value.toUpperCase();
-      nameEl.setSelectionRange(pos, pos);
-    });
 
-    (function initNameAndMode() {
-      const saved = localStorage.getItem(NAME_KEY);
-      if (saved) {
-        nameEl.value = saved.toUpperCase();
-        lockNameField(true);
-      } else {
-        lockNameField(false);
-      }
-      // restore mode and UI state
-      const savedMode = sessionStorage.getItem("mode") || "";
-      if (savedMode) {
-        document.getElementById("mode").value = savedMode;
-      }
-      fillDropdown("department");
-      fillDropdown("fromDept");
-      fillDropdown("toDept");
-      adjustFormFields();
-      // focus barcode if common fields visible
-      if (document.getElementById("commonFields").style.display !== "none") {
-        document.getElementById("barcode").focus();
-      }
-    })();
+    function showIdentityDisplay(upperName, mode) {
+      // fill display
+      const store = storeFromName(upperName);
+      nameText.textContent = upperName;
+      storeText.textContent = store;
+      modeText.textContent = mode || "";
 
-    function ensureNameSaved() {
-      const val = (nameEl.value || "").trim().toUpperCase();
-      if (!val) return false;
-      if (!localStorage.getItem(NAME_KEY)) {
-        localStorage.setItem(NAME_KEY, val);
-        nameEl.value = val;
-        lockNameField(true);
-      }
+      // set hidden submission fields
+      nameHidden.value = upperName;
+      storeHidden.value = store;
+      modeHidden.value = mode || "";
+
+      // swap UI
+      identityInputs.classList.add('hidden');
+      identityDisplay.classList.remove('hidden');
+      identityDisplay.setAttribute('aria-hidden', 'false');
+
+      // show mode-specific sections
+      applyModeUI(mode);
+
+      // scanning area visible + focus barcode
+      commonFields.classList.remove('hidden');
+      barcodeEl.focus();
+    }
+
+    function showIdentityInputs() {
+      identityDisplay.classList.add('hidden');
+      identityDisplay.setAttribute('aria-hidden', 'true');
+      identityInputs.classList.remove('hidden');
+
+      // hide mode-specific while choosing again
+      stocktakeFields.classList.add('hidden');
+      idtFields.classList.add('hidden');
+      stocktakeExtra.classList.add('hidden');
+      commonFields.classList.add('hidden');
+
+      nameInput.focus();
+    }
+
+    function applyModeUI(mode) {
+      stocktakeFields.classList.toggle('hidden', mode !== 'Stocktake');
+      idtFields.classList.toggle('hidden', mode !== 'IDT');
+      stocktakeExtra.classList.toggle('hidden', mode !== 'Stocktake');
+      // commonFields always shown once identity locked
+    }
+
+    function lockIdentityIfPossible() {
+      const upperName = (nameInput.value || "").trim().toUpperCase();
+      const mode = modeInput.value || "";
+
+      if (!upperName || !mode) return false;
+
+      // persist
+      localStorage.setItem(NAME_KEY, upperName);
+      localStorage.setItem(MODE_KEY, mode);
+
+      showIdentityDisplay(upperName, mode);
       return true;
     }
 
-    document.getElementById("resetBtn").addEventListener("click", function() {
-      // Only Reset clears the name + UI state
-      localStorage.removeItem(NAME_KEY);
-      sessionStorage.removeItem("mode");
-      nameEl.value = "";
-      lockNameField(false);
-      document.getElementById("mode").value = "";
-      adjustFormFields();
-      ["barcode","quantity","idtQuantity"].forEach(id=>{
-        const el = document.getElementById(id);
-        if (el) el.value = "";
-      });
-      nameEl.focus();
+    function restoreIdentityIfSaved() {
+      const savedName = localStorage.getItem(NAME_KEY);
+      const savedMode = localStorage.getItem(MODE_KEY);
+      if (savedName && savedMode) {
+        showIdentityDisplay(savedName.toUpperCase(), savedMode);
+        return true;
+      }
+      return false;
+    }
+
+    function ensureIdentity() {
+      if (identityInputs.classList.contains('hidden')) return true;
+      return lockIdentityIfPossible();
+    }
+
+    function isScanTargetActive() {
+      return document.activeElement === barcodeEl;
+    }
+
+    // --- Init ---
+    toUpperLive(nameInput);
+    ['department','fromDept','toDept'].forEach(fillDropdown);
+
+    if (!restoreIdentityIfSaved()) {
+      showIdentityInputs();
+    }
+
+    // When user picks a mode (before locking), just show common area preview
+    modeInput.addEventListener('change', () => {
+      const mode = modeInput.value;
+      applyModeUI(mode);
     });
 
-    // ---------- Guard: only scan into numeric fields ----------
+    // --- Prevent scanners from typing into anything except BARCODE ---
     document.addEventListener("keydown", (e) => {
+      // Most scanners send digits + Enter. Redirect digits to barcode.
       const isDigit = e.key >= "0" && e.key <= "9";
-      if (!isDigit) return;
-      const active = document.activeElement;
-      const ok = ["barcode","quantity","idtQuantity"].includes(active?.id);
-      if (!ok) {
+      if (isDigit && !isScanTargetActive()) {
         e.preventDefault();
-        alert("Please scan in the BARCODE field.");
-        document.getElementById("barcode").focus();
+        barcodeEl.focus();
+        // manually inject the key
+        const v = barcodeEl.value || "";
+        barcodeEl.value = v + e.key;
+      }
+      // Optional: If Enter pressed while not in barcode, move focus to barcode
+      if (e.key === "Enter" && !isScanTargetActive()) {
+        e.preventDefault();
+        barcodeEl.focus();
       }
     }, true);
 
-    // Prevent editing locked name
-    nameEl.addEventListener("beforeinput", (e) => {
-      if (nameEl.readOnly) e.preventDefault();
+    // --- Reset: only way to change identity ---
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      localStorage.removeItem(NAME_KEY);
+      localStorage.removeItem(MODE_KEY);
+      nameInput.value = "";
+      modeInput.value = "";
+      barcodeEl.value = "";
+      showIdentityInputs();
     });
 
-    // ---------- Submit ----------
-    document.getElementById("scannerForm").addEventListener("submit", function(e) {
+    // --- Submit a scan ---
+    document.getElementById("scannerForm").addEventListener("submit", (e) => {
       e.preventDefault();
 
-      if (!ensureNameSaved()) {
-        alert("Please enter your Name + Store Code (e.g. RONETTE SBK)");
-        nameEl.focus();
+      // if identity not locked yet, lock now
+      if (!ensureIdentity()) {
+        alert("Please enter your Name + Store Code and Mode.");
         return;
       }
 
-      const mode = document.getElementById("mode").value;
       const timestamp = new Date().toISOString();
-      const nameField = nameEl.value.trim().toUpperCase();
-      const barcodeEl = document.getElementById("barcode");
-      const barcode = barcodeEl.value.trim(); // barcode stays as typed (usually digits)
+      const name = nameHidden.value;          // from display (locked)
+      const store = storeHidden.value;        // derived & locked
+      const mode = modeHidden.value;          // locked
+      const barcode = barcodeEl.value.trim();
 
-      const storeCode = nameField.split(" ").pop().toUpperCase();
+      if (!barcode) {
+        barcodeEl.focus();
+        return;
+      }
 
-      const payload = {
-        mode,
-        timestamp,
-        name: nameField,
-        store: storeCode,
-        barcode
-      };
+      const payload = { mode, timestamp, name, store, barcode };
 
       if (mode === "Stocktake") {
         payload.department = document.getElementById("department").value;
@@ -248,23 +319,19 @@
         body: JSON.stringify(payload)
       });
 
-      // Clear only numeric fields and refocus barcode for the next scan
-      ["barcode","quantity","idtQuantity"].forEach(id=>{
-        const el = document.getElementById(id);
-        if (el) el.value = "";
-      });
+      // Clear only scan fields and refocus barcode
+      barcodeEl.value = "";
+      const qty = document.getElementById("quantity");
+      const idtQty = document.getElementById("idtQuantity");
+      if (qty) qty.value = "";
+      if (idtQty) idtQty.value = "";
       barcodeEl.focus();
     });
 
-    // Optional: if the browser does hard refresh, restore focus/state again
+    // On page show (after a refresh/back-forward), restore identity display & focus barcode
     window.addEventListener("pageshow", () => {
-      const mode = sessionStorage.getItem("mode");
-      if (mode) {
-        document.getElementById("mode").value = mode;
-        adjustFormFields();
-        if (document.getElementById("commonFields").style.display !== "none") {
-          document.getElementById("barcode").focus();
-        }
+      if (restoreIdentityIfSaved()) {
+        barcodeEl.focus();
       }
     });
   </script>
