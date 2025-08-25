@@ -4,9 +4,7 @@
   <title>BURFAM Scanner App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%;
-    }
+    html, body { margin: 0; padding: 0; height: 100%; }
     body {
       font-family: sans-serif;
       padding: 20px;
@@ -19,40 +17,18 @@
       width: 100vw;
       overflow-x: hidden;
     }
-    form {
-      width: 90vw;
-      max-width: 400px;
-    }
-    label {
-      display: block;
-      margin-top: 15px;
-    }
+    form { width: 90vw; max-width: 400px; }
+    label { display: block; margin-top: 15px; }
     input, select, button, textarea {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      font-size: 1rem;
-      box-sizing: border-box;
+      width: 100%; padding: 10px; margin-top: 5px; font-size: 1rem; box-sizing: border-box;
     }
-    button {
-      margin-top: 20px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-    }
-    .btn-secondary {
-      background-color: #888;
-      margin-top: 10px;
-    }
-    .note {
-      font-size: 0.85rem;
-      color: #555;
-      margin-top: 5px;
-    }
+    button { margin-top: 20px; background-color: #4CAF50; color: white; border: none; }
+    .btn-secondary { background-color: #888; margin-top: 10px; }
+    .note { font-size: 0.85rem; color: #555; margin-top: 5px; }
   </style>
 </head>
 <body>
-  <form id="scannerForm">
+  <form id="scannerForm" autocomplete="off">
     <h2>BURFAM Scanner App</h2>
 
     <small style="display:block; margin-top:5px; font-size:0.9rem; color:#333;">
@@ -63,9 +39,9 @@
       PN = Port Nolloth<br>
       VRD = Vredendal
     </small>
+
     <label for="name">Your Name + Store Code:</label>
     <input type="text" id="name" name="name" required placeholder="e.g. Ronette SBK">
-    
 
     <label for="mode">Scan Mode:</label>
     <select id="mode" name="mode" required onchange="adjustFormFields()">
@@ -93,7 +69,7 @@
 
     <div id="commonFields" style="display:none">
       <label for="barcode">Barcode:</label>
-      <input type="text" id="barcode" name="barcode" required>
+      <input type="text" id="barcode" name="barcode" required inputmode="numeric" pattern="[0-9]*">
 
       <div id="stocktakeExtra" style="display:none">
         <label for="quantity">Quantity:</label>
@@ -118,10 +94,11 @@
     </div>
 
     <button type="submit">Submit</button>
-    <button type="button" class="btn-secondary" onclick="clearSelections()">Reset</button>
+    <button type="button" class="btn-secondary" id="resetBtn">Reset</button>
   </form>
 
   <script>
+    // ---------- Dropdown data ----------
     const departments = [
       "BAKERY CONFEC", "BUTCHERY", "DELICATESSEN", "FRUIT & VEG", "FAST FOODS",
       "BEAN TREE", "BULK CHEESE", "SUSHI", "WHY NOT", "CHIKKA CHICKEN", "BAKERY BREAD",
@@ -137,7 +114,7 @@
       departments.forEach(dept => {
         const opt = document.createElement('option');
         opt.value = dept;
-        opt.text = dept;
+        opt.textContent = dept;
         select.add(opt);
       });
     };
@@ -152,12 +129,92 @@
       document.getElementById("oosExtra").style.display = (mode === 'OOS') ? 'block' : 'none';
     }
 
+    // ---------- Name lock & persistence ----------
+    const NAME_KEY = "burfam_scanner_name";
+    const nameEl = document.getElementById("name");
+    function lockNameField(lock) {
+      nameEl.readOnly = !!lock;
+      nameEl.style.background = lock ? "#f3f3f3" : "";
+    }
+
+    // Load saved name on start (survives refresh)
+    (function initName() {
+      const saved = localStorage.getItem(NAME_KEY);
+      if (saved) {
+        nameEl.value = saved;
+        lockNameField(true);
+      } else {
+        lockNameField(false);
+      }
+    })();
+
+    // Save & lock on first submit if not stored yet
+    function ensureNameSaved() {
+      const val = nameEl.value.trim();
+      if (!val) return false;
+      if (!localStorage.getItem(NAME_KEY)) {
+        localStorage.setItem(NAME_KEY, val);
+        lockNameField(true);
+      }
+      return true;
+    }
+
+    // Reset clears saved name and unlocks
+    document.getElementById("resetBtn").addEventListener("click", function() {
+      localStorage.removeItem(NAME_KEY);
+      nameEl.value = "";
+      lockNameField(false);
+      document.getElementById("mode").value = "";
+      adjustFormFields();
+      ["barcode","quantity","comment","idtQuantity","idtComment","oosComment"].forEach(id=>{
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
+      // Put cursor back to name to encourage setting it again
+      nameEl.focus();
+    });
+
+    // ---------- Scan guard (only allow scans in Barcode or numeric qty fields) ----------
+    function isAllowedScanTarget(el) {
+      return el && (el.id === "barcode" || el.id === "quantity" || el.id === "idtQuantity");
+    }
+    let lastWarnTs = 0;
+    document.addEventListener("keydown", (e) => {
+      const isDigit = e.key >= "0" && e.key <= "9";
+      if (!isDigit) return;
+
+      const active = document.activeElement;
+      if (!isAllowedScanTarget(active)) {
+        e.preventDefault();
+        const now = Date.now();
+        if (now - lastWarnTs > 1000) { // rate-limit the pop-up
+          alert("Please scan in the BARCODE field.");
+          lastWarnTs = now;
+        }
+        document.getElementById("barcode").focus();
+      }
+    }, true);
+
+    // Extra: if someone somehow tries to edit a locked name (e.g., by script),
+    // keep it in sync with saved value.
+    nameEl.addEventListener("beforeinput", (e) => {
+      if (nameEl.readOnly) e.preventDefault();
+    });
+
+    // ---------- Submit ----------
     document.getElementById("scannerForm").addEventListener("submit", function(e) {
       e.preventDefault();
+
+      if (!ensureNameSaved()) {
+        alert("Please enter your Name + Store Code (e.g. Ronette SBK)");
+        nameEl.focus();
+        return;
+      }
+
       const mode = document.getElementById("mode").value;
       const timestamp = new Date().toISOString();
-      const nameField = document.getElementById("name").value;
-      const barcode = document.getElementById("barcode").value;
+      const nameField = nameEl.value.trim();
+      const barcode = document.getElementById("barcode").value.trim();
 
       const payload = {
         mode,
@@ -192,33 +249,29 @@
 
       alert("DONE - Check before submit");
 
-      document.getElementById("barcode").value = "";
-      document.getElementById("quantity").value = "";
-      document.getElementById("comment").value = "";
-      document.getElementById("idtQuantity").value = "";
-      document.getElementById("idtComment").value = "";
-      document.getElementById("oosComment").value = "";
+      // Clear fast-scan fields only (NOT the name)
+      ["barcode","quantity","comment","idtQuantity","idtComment","oosComment"].forEach(id=>{
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
+      document.getElementById("barcode").focus();
     });
 
-    function clearSelections() {
-      document.getElementById("mode").value = "";
-      document.getElementById("name").value = "";
-      adjustFormFields();
-    }
-
+    // ---------- Init ----------
     window.onload = function() {
       fillDropdown("department");
       fillDropdown("fromDept");
       fillDropdown("toDept");
+      adjustFormFields();
     };
 
+    // Optional: auto-submit if barcode pre-filled
     function scantowebsubmit() {
       const barcodeInput = document.getElementById("barcode");
       if (barcodeInput && barcodeInput.value.trim() !== "") {
         document.querySelector("form").requestSubmit();
       }
     }
-
     scantowebsubmit();
   </script>
 </body>
