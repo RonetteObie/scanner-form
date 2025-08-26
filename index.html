@@ -167,24 +167,7 @@
     const nameEl       = document.getElementById("name");
     const modeEl       = document.getElementById("mode");
 
-// ===== Temporary mode lock: keep only OOS selectable =====
-const TEMP_LOCK_TO_OOS = true;   // <- set to false later to re-enable other modes
-if (TEMP_LOCK_TO_OOS) {
-  // Disable Stocktake and IDT options (but leave them in the DOM for later use)
-  const stockOpt = document.querySelector('#mode option[value="Stocktake"]');
-  const idtOpt   = document.querySelector('#mode option[value="IDT"]');
-  if (stockOpt) { stockOpt.disabled = true; stockOpt.textContent += ' — disabled'; }
-  if (idtOpt)   { idtOpt.disabled   = true; idtOpt.textContent   += ' — disabled'; }
 
-  // Force OOS as the current mode and optionally lock the dropdown itself
-  modeEl.value = 'OOS';
-  modeEl.disabled = true;         // <- comment this line out if you want the dropdown visible but fixed
-  adjustFormFields();             // hide any non-OOS extras
-}
-
-
-
-    
     const stocktakeFields = document.getElementById("stocktakeFields");
     const idtFields       = document.getElementById("idtFields");
     const stocktakeExtra  = document.getElementById("stocktakeExtra");
