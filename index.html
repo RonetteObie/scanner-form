@@ -100,7 +100,7 @@
 
       <button id="btn-submit-initial">Submit</button>
       <button type="button" class="btn-secondary" id="btn-reset">Reset</button>
-      <p class="muted" style="margin-top:10px;">Please check "Name {Space} Code" before submit, on next page only the Barcode is editable - Dankie :).</p>
+      <p class="muted" style="margin-top:10px;">Please check selection, on next page only the Barcode will be editable, otherwise then reset input.</p>
     </div>
 
     <!-- Scan -->
@@ -144,7 +144,7 @@
   <div id="toast" class="toast">Barcode submitted</div>
 
   <script>
-    // ===== Kill ANY blocking popups (incl. "duplicate" prompts) =====
+    // ===== Kill any blocking popups (incl. “duplicate scan” prompts) =====
     window.alert = function () {};
     window.confirm = function () { return true; };
     window.prompt = function () { return null; };
@@ -166,8 +166,6 @@
     const panelScan    = document.getElementById("panel-scan");
     const nameEl       = document.getElementById("name");
     const modeEl       = document.getElementById("mode");
-
-
     const stocktakeFields = document.getElementById("stocktakeFields");
     const idtFields       = document.getElementById("idtFields");
     const stocktakeExtra  = document.getElementById("stocktakeExtra");
@@ -285,6 +283,18 @@
       barcodeEl.value = "";
       focusBarcodeSoon();
       return true;
+    }
+
+    // ===== TEMP: lock to OOS only (place AFTER adjustFormFields & DOM refs) =====
+    const TEMP_LOCK_TO_OOS = true; // set to false later to re-enable other modes
+    if (TEMP_LOCK_TO_OOS) {
+      const stockOpt = document.querySelector('#mode option[value="Stocktake"]');
+      const idtOpt   = document.querySelector('#mode option[value="IDT"]');
+      if (stockOpt) { stockOpt.disabled = true; stockOpt.textContent += ' — disabled'; }
+      if (idtOpt)   { idtOpt.disabled   = true; idtOpt.textContent   += ' — disabled'; }
+      modeEl.value = 'OOS';
+      modeEl.disabled = true;   // comment this line to show dropdown but fixed
+      adjustFormFields();
     }
 
     // ===== Event wiring =====
