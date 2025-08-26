@@ -119,7 +119,7 @@
       <input
         type="text" id="barcode"
         inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-        placeholder="Scan here…" required maxlength="32"
+        placeholder="Please TAP before scan" required maxlength="32"
         pattern="[0-9]*"
       >
 
@@ -135,6 +135,16 @@
 
   <script>
     // ===== Config =====
+
+// Silence any blocking popups (duplicate-scan alerts, confirms, prompts)
+window.alert = function () {};
+window.confirm = function () { return true; };
+window.prompt = function () { return null; };
+
+// Also prevent refresh warnings if something tries to add them
+window.onbeforeunload = null;
+
+    
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbzJLQD6WScnGAd8PlYtfcdhH6Km7Kt31E2b4d0md0kLRw8cryX0GbSil_1zwWlSpIS9hQ/exec";
     const departments = [
       "BAKERY CONFEC","BUTCHERY","DELICATESSEN","FRUIT & VEG","FAST FOODS",
