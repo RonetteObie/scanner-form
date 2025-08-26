@@ -116,7 +116,12 @@
       </div>
 
       <label for="barcode" style="margin-top:16px;">Barcode</label>
-      <input type="text" id="barcode" inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Please TAP to SCAN" required>
+      <input
+        type="text" id="barcode"
+        inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        placeholder="Scan here…" required maxlength="32"
+        pattern="[0-9]*"
+      >
 
       <button id="btn-submit-scan">Submit</button>
       <button type="button" class="btn-secondary" id="btn-reset-2">Reset</button>
@@ -321,7 +326,7 @@
       if (el) el.addEventListener("change", saveSession);
     });
 
-    // Restore state on load (so pull‑to‑refresh keeps you on scan panel)
+    // Restore state on load (so pull-to-refresh keeps you on scan panel)
     restoreSession();
 
     // Always shove focus back to the barcode when we return from scanner overlays / refreshes
@@ -329,20 +334,16 @@
     document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState==="visible" && !panelScan.classList.contains("hidden")) focusBarcodeSoon(); });
     panelScan.addEventListener("pointerdown", ()=>{ if (!panelScan.classList.contains("hidden")) focusBarcodeSoon(); });
 
-    // ===== Scanner key buffer (works even if focus drifts) =====
-    // Many mobile scanners type digits fast then send Enter. Capture that stream and
-    // push it into the barcode field automatically.
+    // ===== Scanner key buffer (fixed: does NOT interfere with manual typing) =====
     let scanBuf = "";
     let scanTimer = null;
-    const COMMIT_MS = 120; // idle time to consider the scan finished
+    const COMMIT_MS = 120;
 
     function commitScanBuffer() {
       if (!scanBuf) return;
-      // Only accept digits (typical barcode content)
       const cleaned = scanBuf.replace(/\D+/g,"");
       if (cleaned) {
         barcodeEl.value = cleaned;
-        // keep focus on barcode, so the next scan goes there too
         focusBarcodeSoon();
       }
       scanBuf = "";
@@ -352,28 +353,25 @@
     document.addEventListener("keydown", (e)=>{
       if (panelScan.classList.contains("hidden")) return;
 
-      // Ignore when user is actively editing a different input on the scan panel (quantity fields)
-      const editableInputs = [barcodeEl, quantityEl, idtQuantityEl].filter(Boolean);
-      const active = document.activeElement;
-      const isEditable = editableInputs.includes(active);
+      // If user is actively typing in the barcode field, DO NOT intercept.
+      if (document.activeElement === barcodeEl) return;
 
-      // Capture digits even if focus isn't on barcode
+      // Capture quick-fire scanner digits only when focus is elsewhere
       if (/^[0-9]$/.test(e.key)) {
         scanBuf += e.key;
         if (scanTimer) clearTimeout(scanTimer);
         scanTimer = setTimeout(commitScanBuffer, COMMIT_MS);
-        // If not currently in the barcode, don't type into that other field
-        if (active !== barcodeEl) e.preventDefault();
+        e.preventDefault(); // don't type into the wrong field
       } else if (e.key === "Enter") {
-        // End of scan
         commitScanBuffer();
         e.preventDefault();
       }
     });
 
-    // Handle paste events from scanner apps that paste directly
     document.addEventListener("paste", (e)=>{
       if (panelScan.classList.contains("hidden")) return;
+      // If focus is already in barcode, let paste happen naturally
+      if (document.activeElement === barcodeEl) return;
       const text = (e.clipboardData && e.clipboardData.getData('text')) || "";
       if (text) {
         barcodeEl.value = text.replace(/\s+/g,"");
