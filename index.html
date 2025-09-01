@@ -125,7 +125,7 @@
 
       <label for="barcode" style="margin-top:16px;">Barcode</label>
       <input
-        type="text" id="barcode"
+        type="text" id="barcode" autofocus
         inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
         placeholder="Scan or type digits" required maxlength="64" pattern="[0-9]*"
       >
@@ -144,7 +144,7 @@
   <div id="toast" class="toast">Barcode submitted</div>
 
   <script>
-    // Kill blocking popups (incl. duplicate prompts)
+    // Silence popups (incl. duplicate prompts)
     window.alert = function () {};
     window.confirm = function () { return true; };
     window.prompt = function () { return null; };
@@ -251,7 +251,6 @@
           if (s.mode === "Stocktake") { show(stocktakeExtra); hide(idtExtra); }
           else if (s.mode === "IDT")  { hide(stocktakeExtra); show(idtExtra); }
           else { hide(stocktakeExtra); hide(idtExtra); }
-          // Disable non-barcode inputs on scan panel
           disableNonBarcodeInputs(true);
           focusBarcodeSoon();
         } else {
@@ -286,7 +285,6 @@
       if (mode === "Stocktake") { show(stocktakeExtra); hide(idtExtra); }
       else if (mode === "IDT")  { hide(stocktakeExtra); show(idtExtra); }
       else { hide(stocktakeExtra); hide(idtExtra); }
-      // Disable non-barcode inputs on scan panel
       disableNonBarcodeInputs(true);
       saveSession();
       barcodeEl.value = "";
@@ -358,7 +356,6 @@
       show(panelSetup); hide(panelScan);
       hide(stocktakeFields); hide(idtFields);
       hide(stocktakeExtra); hide(idtExtra);
-      // Re-enable disabled inputs since we returned to setup
       disableNonBarcodeInputs(false);
       nameHidden.value = ""; storeHidden.value=""; modeHidden.value="";
       setTimeout(()=>nameEl.focus(), 50);
@@ -377,80 +374,73 @@
     // Keep focus welded to barcode aggressively
     barcodeEl.addEventListener("blur", focusBarcodeSoon);
     window.addEventListener("pageshow", focusBarcodeSoon);
+    window.addEventListener("focus", focusBarcodeSoon);
     document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState==="visible") focusBarcodeSoon(); });
     panelScan.addEventListener("pointerdown", focusBarcodeSoon);
     document.body.addEventListener("click", ()=>{ if (!panelScan.classList.contains("hidden")) focusBarcodeSoon(); });
 
-    // Focus keeper loop (handles OS/overlay stealing focus)
+    // Focus keeper loop
     let keepFocusTimer = null;
     function startFocusKeeper(){
       if (keepFocusTimer) return;
       keepFocusTimer = setInterval(()=> {
         if (!panelScan.classList.contains("hidden")) focusBarcode();
-      }, 400);
+      }, 200);
     }
     function stopFocusKeeper(){
       if (keepFocusTimer) { clearInterval(keepFocusTimer); keepFocusTimer = null; }
     }
-    // start/stop with panel visibility
     const visObs = new MutationObserver(() => {
       if (panelScan.classList.contains("hidden")) stopFocusKeeper();
       else startFocusKeeper();
     });
     visObs.observe(panelScan, { attributes:true, attributeFilter:["class"] });
 
-    // Disable non-barcode inputs while scanning
     function disableNonBarcodeInputs(disabled){
       if (quantityEl) { quantityEl.disabled = disabled; quantityEl.tabIndex = disabled ? -1 : 0; }
       if (idtQuantityEl) { idtQuantityEl.disabled = disabled; idtQuantityEl.tabIndex = disabled ? -1 : 0; }
     }
 
-    // Scanner key buffer (works even if focus drifts)
-    let scanBuf = "";
-    let scanTimer = null;
-    const COMMIT_MS = 120;
-
-    function commitScanBuffer() {
-      if (!scanBuf) return;
-      const cleaned = scanBuf.replace(/\D+/g,"");
-      if (cleaned) {
-        barcodeEl.value = cleaned;
-        focusBarcodeSoon();
-      }
-      scanBuf = "";
-      if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
+    // ===== Hard routing of all digits to barcode (no tap required) =====
+    function routeDigit(d){
+      // accept only single 0–9
+      if (!/^[0-9]$/.test(d)) return;
+      focusBarcode();
+      const v = barcodeEl.value || "";
+      barcodeEl.value = v + d;
+      // place caret at end
+      const end = barcodeEl.value.length;
+      try { barcodeEl.setSelectionRange(end, end); } catch(_) {}
     }
 
     document.addEventListener("keydown", (e)=>{
       if (panelScan.classList.contains("hidden")) return;
 
-      // If user is actively typing in the barcode field, don't intercept
-      if (document.activeElement === barcodeEl) return;
-
-      // Capture wedge scanner digits anywhere
+      // If it's a digit anywhere, force it into the barcode field
       if (/^[0-9]$/.test(e.key)) {
-        scanBuf += e.key;
-        if (scanTimer) clearTimeout(scanTimer);
-        scanTimer = setTimeout(commitScanBuffer, COMMIT_MS);
         e.preventDefault();
-      } else if (e.key === "Enter") {
-        commitScanBuffer();
-        e.preventDefault();
+        routeDigit(e.key);
+        return;
       }
-    });
+      if (e.key === "Enter") {
+        // some scanners send Enter after digits; do nothing except keep focus
+        e.preventDefault();
+        focusBarcodeSoon();
+      }
+    }, true); // capture phase to beat other handlers
 
+    // Some scanner apps paste all digits at once: route them too
     document.addEventListener("paste", (e)=>{
       if (panelScan.classList.contains("hidden")) return;
-      if (document.activeElement === barcodeEl) return; // normal paste when already focused
       const text = (e.clipboardData && e.clipboardData.getData('text')) || "";
-      if (text) {
-        barcodeEl.value = text.replace(/\s+/g,"");
-        focusBarcodeSoon();
-        e.preventDefault();
-      }
-    });
+      if (!text) return;
+      e.preventDefault();
+      focusBarcode();
+      barcodeEl.value = (text.replace(/\s+/g,"").match(/[0-9]+/g) || [""])[0];
+      const end = barcodeEl.value.length;
+      try { barcodeEl.setSelectionRange(end, end); } catch(_) {}
+    }, true);
 
-    // Kick off focus keeper if we restored into scan panel
     if (!panelScan.classList.contains("hidden")) startFocusKeeper();
   </script>
 </body>
