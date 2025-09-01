@@ -40,7 +40,6 @@
       background:#fafafa; margin-top:8px;
     }
     .pill { font-size:.8rem; padding:4px 10px; border-radius:999px; background:#e5f7eb; color:#15803d; font-weight:700; }
-
     /* Toast */
     .toast {
       position: fixed; left:50%; bottom:18px; transform: translateX(-50%) translateY(20px);
@@ -100,7 +99,7 @@
 
       <button id="btn-submit-initial">Submit</button>
       <button type="button" class="btn-secondary" id="btn-reset">Reset</button>
-      <p class="muted" style="margin-top:10px;">Please check your "Name{Space}Store"; on next page only barcode field is editable. Tap barcode Field to activate scan or Manual entry</p>
+      <p class="muted" style="margin-top:10px;">On the next page, only the barcode is editable. Just scan → submit → scan.</p>
     </div>
 
     <!-- Scan -->
@@ -113,21 +112,22 @@
         <div class="pill" id="summary-store"></div>
       </div>
 
+      <!-- Extra blocks kept for future, but disabled while scanning -->
       <div id="stocktakeExtra" class="hidden">
         <label for="quantity">Quantity (Stocktake)</label>
-        <input type="number" id="quantity" min="0" step="any" inputmode="decimal">
+        <input type="number" id="quantity" min="0" step="any" inputmode="decimal" disabled>
       </div>
 
       <div id="idtExtra" class="hidden">
         <label for="idtQuantity">Quantity (IDT)</label>
-        <input type="number" id="idtQuantity" min="0" step="any" inputmode="decimal">
+        <input type="number" id="idtQuantity" min="0" step="any" inputmode="decimal" disabled>
       </div>
 
       <label for="barcode" style="margin-top:16px;">Barcode</label>
       <input
         type="text" id="barcode"
         inputmode="numeric" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-        placeholder="TAP to Scan or type digits" required maxlength="32" pattern="[0-9]*"
+        placeholder="Scan or type digits" required maxlength="64" pattern="[0-9]*"
       >
 
       <button id="btn-submit-scan">Submit</button>
@@ -144,13 +144,13 @@
   <div id="toast" class="toast">Barcode submitted</div>
 
   <script>
-    // ===== Kill any blocking popups (incl. “duplicate scan” prompts) =====
+    // Kill blocking popups (incl. duplicate prompts)
     window.alert = function () {};
     window.confirm = function () { return true; };
     window.prompt = function () { return null; };
     window.onbeforeunload = null;
 
-    // ===== Config =====
+    // Config
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbzJLQD6WScnGAd8PlYtfcdhH6Km7Kt31E2b4d0md0kLRw8cryX0GbSil_1zwWlSpIS9hQ/exec";
     const departments = [
       "BAKERY CONFEC","BUTCHERY","DELICATESSEN","FRUIT & VEG","FAST FOODS",
@@ -161,7 +161,7 @@
       "CHIKKA CHICKEN_INGREDIENTS","BAKERY BREAD_INGREDIENTS"
     ];
 
-    // ===== Elements =====
+    // Elements
     const panelSetup   = document.getElementById("panel-setup");
     const panelScan    = document.getElementById("panel-scan");
     const nameEl       = document.getElementById("name");
@@ -184,16 +184,16 @@
     const modeHidden   = document.getElementById("modeHidden");
     const toastEl      = document.getElementById("toast");
 
-    // ===== Toast helper =====
+    // Toast
     let toastTimer = null;
     function showToast(msg = "Barcode submitted") {
       toastEl.textContent = msg;
       toastEl.classList.add("show");
       if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1200);
+      toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1000);
     }
 
-    // ===== Helpers =====
+    // Helpers
     function show(el){ el.classList.remove("hidden"); }
     function hide(el){ el.classList.add("hidden"); }
     function toUpperLive(el){
@@ -215,7 +215,12 @@
       if (["SBK","PN","VRD"].includes(token)) return token;
       return "";
     }
-    function focusBarcodeSoon(){ setTimeout(()=>barcodeEl.focus(), 40); }
+    function focusBarcode() {
+      if (panelScan.classList.contains("hidden")) return;
+      if (document.activeElement !== barcodeEl) barcodeEl.focus({ preventScroll:true });
+    }
+    function focusBarcodeSoon(){ setTimeout(focusBarcode, 40); }
+
     function saveSession(){
       const payload = {
         locked: !panelScan.classList.contains("hidden"),
@@ -246,6 +251,8 @@
           if (s.mode === "Stocktake") { show(stocktakeExtra); hide(idtExtra); }
           else if (s.mode === "IDT")  { hide(stocktakeExtra); show(idtExtra); }
           else { hide(stocktakeExtra); hide(idtExtra); }
+          // Disable non-barcode inputs on scan panel
+          disableNonBarcodeInputs(true);
           focusBarcodeSoon();
         } else {
           if (s.name) nameEl.value = s.name.toUpperCase();
@@ -254,7 +261,7 @@
           if (stockDateEl && s.stockDate) stockDateEl.value = s.stockDate;
           adjustFormFields();
         }
-      } catch(e) { /* ignore */ }
+      } catch(e) {}
     }
     function adjustFormFields(){
       const mode = modeEl.value;
@@ -279,25 +286,27 @@
       if (mode === "Stocktake") { show(stocktakeExtra); hide(idtExtra); }
       else if (mode === "IDT")  { hide(stocktakeExtra); show(idtExtra); }
       else { hide(stocktakeExtra); hide(idtExtra); }
+      // Disable non-barcode inputs on scan panel
+      disableNonBarcodeInputs(true);
       saveSession();
       barcodeEl.value = "";
       focusBarcodeSoon();
       return true;
     }
 
-    // ===== TEMP: lock to OOS only (place AFTER adjustFormFields & DOM refs) =====
-    const TEMP_LOCK_TO_OOS = true; // set to false later to re-enable other modes
+    // TEMP: lock to OOS only
+    const TEMP_LOCK_TO_OOS = true;
     if (TEMP_LOCK_TO_OOS) {
       const stockOpt = document.querySelector('#mode option[value="Stocktake"]');
       const idtOpt   = document.querySelector('#mode option[value="IDT"]');
       if (stockOpt) { stockOpt.disabled = true; stockOpt.textContent += ' — disabled'; }
       if (idtOpt)   { idtOpt.disabled   = true; idtOpt.textContent   += ' — disabled'; }
       modeEl.value = 'OOS';
-      modeEl.disabled = true;   // comment this line to show dropdown but fixed
+      modeEl.disabled = true;
       adjustFormFields();
     }
 
-    // ===== Event wiring =====
+    // Event wiring
     toUpperLive(nameEl);
     fillDropdown(deptEl); fillDropdown(fromDeptEl); fillDropdown(toDeptEl);
     modeEl.addEventListener("change", adjustFormFields);
@@ -331,13 +340,10 @@
         payload.quantity = idtQuantityEl.value;
       }
 
-      // Fire-and-forget; immediately show success toast
       fetch(ENDPOINT, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
 
       showToast("Barcode submitted");
       barcodeEl.value = "";
-      if (quantityEl) quantityEl.value = "";
-      if (idtQuantityEl) idtQuantityEl.value = "";
       focusBarcodeSoon();
     });
 
@@ -348,10 +354,12 @@
       if (fromDeptEl) fromDeptEl.value = "";
       if (toDeptEl) toDeptEl.value = "";
       const sd = document.getElementById("stockDate"); if (sd) sd.value = "";
-      barcodeEl.value = ""; if (quantityEl) quantityEl.value=""; if (idtQuantityEl) idtQuantityEl.value="";
+      barcodeEl.value = "";
       show(panelSetup); hide(panelScan);
       hide(stocktakeFields); hide(idtFields);
       hide(stocktakeExtra); hide(idtExtra);
+      // Re-enable disabled inputs since we returned to setup
+      disableNonBarcodeInputs(false);
       nameHidden.value = ""; storeHidden.value=""; modeHidden.value="";
       setTimeout(()=>nameEl.focus(), 50);
     }
@@ -363,16 +371,41 @@
       if (el) el.addEventListener("change", saveSession);
     });
 
-    // Restore state on load (so pull-to-refresh keeps you on scan panel)
+    // Restore session on load
     restoreSession();
 
-    // Keep focus welded to barcode
-    barcodeEl.addEventListener("blur", () => { if (!panelScan.classList.contains("hidden")) setTimeout(()=>barcodeEl.focus(), 30); });
-    window.addEventListener("pageshow", ()=>{ if (!panelScan.classList.contains("hidden")) focusBarcodeSoon(); });
-    document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState==="visible" && !panelScan.classList.contains("hidden")) focusBarcodeSoon(); });
-    panelScan.addEventListener("pointerdown", ()=>{ if (!panelScan.classList.contains("hidden")) focusBarcodeSoon(); });
+    // Keep focus welded to barcode aggressively
+    barcodeEl.addEventListener("blur", focusBarcodeSoon);
+    window.addEventListener("pageshow", focusBarcodeSoon);
+    document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState==="visible") focusBarcodeSoon(); });
+    panelScan.addEventListener("pointerdown", focusBarcodeSoon);
+    document.body.addEventListener("click", ()=>{ if (!panelScan.classList.contains("hidden")) focusBarcodeSoon(); });
 
-    // ===== Scanner key buffer (does NOT interfere with manual typing) =====
+    // Focus keeper loop (handles OS/overlay stealing focus)
+    let keepFocusTimer = null;
+    function startFocusKeeper(){
+      if (keepFocusTimer) return;
+      keepFocusTimer = setInterval(()=> {
+        if (!panelScan.classList.contains("hidden")) focusBarcode();
+      }, 400);
+    }
+    function stopFocusKeeper(){
+      if (keepFocusTimer) { clearInterval(keepFocusTimer); keepFocusTimer = null; }
+    }
+    // start/stop with panel visibility
+    const visObs = new MutationObserver(() => {
+      if (panelScan.classList.contains("hidden")) stopFocusKeeper();
+      else startFocusKeeper();
+    });
+    visObs.observe(panelScan, { attributes:true, attributeFilter:["class"] });
+
+    // Disable non-barcode inputs while scanning
+    function disableNonBarcodeInputs(disabled){
+      if (quantityEl) { quantityEl.disabled = disabled; quantityEl.tabIndex = disabled ? -1 : 0; }
+      if (idtQuantityEl) { idtQuantityEl.disabled = disabled; idtQuantityEl.tabIndex = disabled ? -1 : 0; }
+    }
+
+    // Scanner key buffer (works even if focus drifts)
     let scanBuf = "";
     let scanTimer = null;
     const COMMIT_MS = 120;
@@ -390,10 +423,11 @@
 
     document.addEventListener("keydown", (e)=>{
       if (panelScan.classList.contains("hidden")) return;
-      // If user is actively typing in the barcode field, DO NOT intercept.
+
+      // If user is actively typing in the barcode field, don't intercept
       if (document.activeElement === barcodeEl) return;
 
-      // Capture scanner digits only when focus isn't already in barcode
+      // Capture wedge scanner digits anywhere
       if (/^[0-9]$/.test(e.key)) {
         scanBuf += e.key;
         if (scanTimer) clearTimeout(scanTimer);
@@ -407,7 +441,7 @@
 
     document.addEventListener("paste", (e)=>{
       if (panelScan.classList.contains("hidden")) return;
-      if (document.activeElement === barcodeEl) return; // let normal pastes happen
+      if (document.activeElement === barcodeEl) return; // normal paste when already focused
       const text = (e.clipboardData && e.clipboardData.getData('text')) || "";
       if (text) {
         barcodeEl.value = text.replace(/\s+/g,"");
@@ -415,6 +449,9 @@
         e.preventDefault();
       }
     });
+
+    // Kick off focus keeper if we restored into scan panel
+    if (!panelScan.classList.contains("hidden")) startFocusKeeper();
   </script>
 </body>
 </html>
